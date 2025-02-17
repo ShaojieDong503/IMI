@@ -18,8 +18,8 @@ import plotly.express as px
 import os
 from pathlib import Path
 
-input_dir = os.getenv('INPUT_DIR', '../data')  # 优先读取环境变量
-output_dir = os.getenv('OUTPUT_DIR', '../outputs')
+input_dir = os.getenv('INPUT_DIR', '/mnt/data')  
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/outputs')
 interim_dir = os.path.join(output_dir, 'interim')
 
 def ensure_dir(path):

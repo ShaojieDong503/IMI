@@ -273,6 +273,25 @@ label_encoder = LabelEncoder()
 merged_df_final['mode_transaction_type'] = label_encoder.fit_transform(merged_df_final['mode_transaction_type'])
 print(merged_df_final)
 
+# Ratio of # of ecommerce transactions
+card_ratio = (
+    df_card.groupby("customer_id")["ecommerce_ind"]
+    .mean()  
+    .reset_index(name="ecommerce_ratio")
+)
+
+# Ratio of # of cash transactions
+abm_ratio = (
+    df_abm.groupby("customer_id")["cash_indicator"]
+    .mean()
+    .reset_index(name="cash_ratio")
+)
+# Merge the ratios with the main table and fill missing values with 0
+merged_df_final = merged_df_final.merge(card_ratio, on="customer_id", how="left")
+merged_df_final = merged_df_final.merge(abm_ratio, on="customer_id", how="left")
+merged_df_final["ecommerce_ratio"] = merged_df_final["ecommerce_ratio"].fillna(0)
+merged_df_final["cash_ratio"] = merged_df_final["cash_ratio"].fillna(0)
+
 # output the data file
 general_table_path = os.path.join(interim_dir, "general_table.csv")
 ensure_dir(general_table_path)
