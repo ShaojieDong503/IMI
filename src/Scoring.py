@@ -30,6 +30,7 @@ eft_path = os.path.join(input_dir, 'eft.csv')
 emt_path = os.path.join(input_dir, 'emt.csv')
 wire_path = os.path.join(input_dir, 'wire.csv')
 general_table_path = os.path.join(interim_dir, 'general_table.csv')
+kyc_path = os.path.join(input_dir, 'kyc_table.csv')
 
 df = pd.read_csv(general_table_path)
 df_abm = pd.read_csv(abm_path)
@@ -38,9 +39,10 @@ df_emt = pd.read_csv(emt_path)
 df_eft = pd.read_csv(eft_path)
 df_cheque = pd.read_csv(cheque_path)
 df_card = pd.read_csv(card_path)
+df_kyc = pd.read_csv(kyc_path)
 
 with open(os.path.join(input_dir, 'all_location_dict.json')) as f:
-    location_dict = json.load(f)
+    locations_dict = json.load(f)
 
 class Structure_clean:
     def __init__(self):
@@ -543,7 +545,7 @@ print(df_funnel.head(5))
 # prompt: I want to map the structuring_points with the same customer_id in the df_structure to df_general.csv
 
 # Merge the dataframes based on 'customer_id'
-df_merged = pd.merge(df_general, df_structure, on='customer_id', how='left')
+df_merged = pd.merge(df, df_structure, on='customer_id', how='left')
 
 # Merge the dataframes based on 'customer_id'
 df_merged = pd.merge(df_merged, df_funnel, on='customer_id', how='left')

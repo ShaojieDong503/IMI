@@ -10,7 +10,7 @@ Original file is located at
 import os
 from pathlib import Path
 import pandas as pd
-import gdown
+
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from scipy.stats import mode
