@@ -1,5 +1,5 @@
 from base_clustering import task_one_script
-from imi_data_eda import get_general_table
+from EDA import get_general_table
 #from scarf import task_two_script
 
 
