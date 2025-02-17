@@ -179,8 +179,8 @@ df_emt['transaction_type'] = 'EMT'
 df_cheque['transaction_type'] = 'Cheque'
 
 # Select relevant columns
-df_card = df_card[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-df_abm = df_abm[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+df_card = df_card[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type','ecommerce_ind']]
+df_abm = df_abm[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type', 'cash_indicator']]
 df_wire = df_wire[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
 df_eft = df_eft[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
 df_emt = df_emt[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
