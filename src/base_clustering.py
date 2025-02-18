@@ -248,7 +248,7 @@ df = assign_high_amount_score(
     score_col="score_credit_high_amount"
 )
 
-df["score_total"] = df["funnel_points"] + df["structuring_points_y"]+df["score_missing_kyc"]+df["score_high_freq"]+df["score_debit_high_amount"]+df["score_credit_high_amount"]
+df["score_total"] = df["funnel_points"] + df["structuring_points_x"]+df["score_missing_kyc"]+df["score_high_freq"]+df["score_debit_high_amount"]+df["score_credit_high_amount"]
 
 # Persons with highest score(>99%) are flaged as bad actors
 threshold = df["score_total"].quantile(0.995)

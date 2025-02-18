@@ -33,7 +33,7 @@ wire_path = os.path.join(input_dir, 'wire.csv')
 general_table_path = os.path.join(interim_dir, 'general_table.csv')
 kyc_path = os.path.join(input_dir, 'kyc.csv')
 
-df = pd.read_csv(general_table_path)
+df_general= pd.read_csv(general_table_path)
 df_abm = pd.read_csv(abm_path)
 df_wire = pd.read_csv(wire_path)
 df_emt = pd.read_csv(emt_path)
