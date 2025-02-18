@@ -18,17 +18,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir \
-    torch==2.0.1+cpu \
-    torchvision==0.15.2+cpu \
-    torchaudio==2.0.2+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt 
 
 # Copy entire src directory
 COPY src/ src/
 
 # Create input/output directories
 RUN mkdir -p /input /output
+COPY input/ /input/
 
-CMD ["python", "src/main.py"]
+
+COPY script.sh .
+# Give execute permission to the script
+RUN chmod +x script.sh
+
+# Run the shell script when the container starts
+CMD ["./script.sh"]

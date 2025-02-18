@@ -15,8 +15,8 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 from scipy.stats import mode
 
-input_dir = os.getenv('INPUT_DIR', '../data')
-output_dir = os.getenv('OUTPUT_DIR', '../outputs')
+input_dir = os.getenv('INPUT_DIR', '/input') 
+output_dir = os.getenv('OUTPUT_DIR', '/output') 
 interim_dir = os.path.join(output_dir, 'interim')
 def ensure_dir(path):
     Path(interim_dir).mkdir(parents=True, exist_ok=True)

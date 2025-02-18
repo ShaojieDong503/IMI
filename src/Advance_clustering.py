@@ -16,7 +16,14 @@ from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 import plotly.express as px
 
-df = pd.read_csv("/Users/christopherzhang/Desktop/2025_IMI/SCARF/Task_2.csv")
+import os
+from pathlib import Path
+
+input_dir = os.getenv('INPUT_DIR', '/input') 
+output_dir = os.getenv('OUTPUT_DIR', '/output') 
+interim_dir = os.path.join(output_dir, 'interim')
+task2_output_path = os.path.join(output_dir, 'task2.csv')
+df = pd.read_csv(task2_output_path)
 df.head()
 
 # Check correlation for all the
