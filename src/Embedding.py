@@ -102,12 +102,14 @@ df.head()
 
 data = df
 # ***Change features***
-data = data[["total_debit_amount_cad", "total_credit_amount_cad","transaction_frequency","funnel_points", "structuring_points_y" ]]
+# NOT include any highly correlated features
+data = data[['total_debit_amount_cad', 'transaction_frequency',
+       'avg_transaction_interval_day', 'mode_transaction_interval_day',
+       'avg_credit_transaction_amount', 
+       'avg_debit_transaction_amount', 'structuring_points_x', 
+       'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio' ]]
 
 # preprocess
-constant_cols = [c for c in data.columns if data[c].nunique() == 1]
-data = data.drop(columns=constant_cols)
-
 scaler = StandardScaler()
 data_scaled = pd.DataFrame(scaler.fit_transform(data), columns=data.columns)
 
@@ -156,7 +158,6 @@ for epoch in range(1, epochs + 1):
     epoch_loss = train_epoch(model, ntxent_loss, train_loader, optimizer, device)
     loss_history.append(epoch_loss)
 
-    # 早停判断
     if epoch_loss < best_loss:
         best_loss = epoch_loss
         no_improve = 0
@@ -170,7 +171,7 @@ for epoch in range(1, epochs + 1):
     if epoch % 10 == 0:
         print(f"Epoch {epoch}/{epochs} - Loss: {loss_history[-1]:.4f}")
 
-# 可视化训练过程
+# Visulize the training loss
 plt.figure(figsize=(10, 5))
 plt.plot(loss_history)
 plt.xlabel("Epoch")
@@ -196,7 +197,6 @@ df_embeddings['customer_id'] = df_embeddings['customer_id'].astype(df['customer_
 print(df_embeddings.head())
 
 task2_output_path = os.path.join(output_dir, 'task2.csv')
-
 task2_output_path = os.path.join(output_dir, 'task2/customer_embeddings.txt')
 
 

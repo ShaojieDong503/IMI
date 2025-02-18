@@ -30,7 +30,7 @@ eft_path = os.path.join(input_dir, 'eft.csv')
 emt_path = os.path.join(input_dir, 'emt.csv')
 wire_path = os.path.join(input_dir, 'wire.csv')
 general_table_path = os.path.join(interim_dir, 'general_table.csv')
-kyc_path = os.path.join(input_dir, 'kyc_table.csv')
+kyc_path = os.path.join(input_dir, 'kyc.csv')
 
 df = pd.read_csv(general_table_path)
 df_abm = pd.read_csv(abm_path)
@@ -306,6 +306,9 @@ print(df_structure.head(5))
 
 print(df_structure.tail(5))
 
+structure_counts = df_structure['structuring_points'].value_counts()
+print(f"Column: Structure_points\n{structure_counts}\n")
+
 class clean_funnel():
     def __init__(self):
         pass
@@ -536,16 +539,149 @@ def calculate_funnel_points(df_abm, df_card, locations_dict):
 
     return result_df
 
-df_funnel = calculate_funnel_points(df_abm, df_card, locations_dict)
+def calculate_funnel_points(df_abm, df_card,locations_dict):
+
+    Funnel = clean_funnel()
+
+    # Formatting dfs
+    df_abm_cleaned = Funnel.clean_df(df_abm)
+    df_card_cleaned = Funnel.clean_df(df_card)
+
+    df_abm_cleaned['transaction_type'] = "abm"
+    df_card_cleaned['transaction_type'] = "card"
+
+    # Geoencoding dfs
+
+    # Read all_location_dict.json as locations_dict
+
+    locations_dict = {k.upper(): v for k, v in locations_dict.items()}
+
+    # Geoencoding dfs
+    stacked_df = Funnel.geoencode_df(df_abm_cleaned, df_card_cleaned, locations_dict)
+
+    # Count the number of null values in df
+    nan_count_dict = Funnel.count_row_with_na(stacked_df)
+
+    # drop the rows that contains nan value
+    stacked_df.dropna(subset=['country','province','city', 'latitude', 'longitude'], inplace=True)
+
+    # Apply furthur transformation
+    filtered_df = Funnel.check_funnel_transaction(stacked_df, locations_dict)
+
+    # Calculate the Funnel Transaction frequnecy count score (in dictionary format)
+    normalized_funnel_count_dict = Funnel.check_funnel_count(filtered_df, nan_count_dict)
+
+    # Calculate the Funnel distance and time score (in dictionary format)
+    normalized_funnel_distance_dict, normalized_funnel_time_difference_dict = Funnel.calculate_time_distance_dict(filtered_df)
+
+    import heapq
+
+    # Get the second lowest value
+    second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
+    lowest_time_diff = second_lowest/10
+
+    normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in normalized_funnel_time_difference_dict.items()}
+
+    counter_distance = Counter(normalized_funnel_distance_dict)
+    counter_time_difference = Counter(normalized_funnel_time_difference_dict)
+    counter_count = Counter(normalized_funnel_count_dict)
+
+    # Funnel Index Calculate, longer distance, smaller time difference and larger funnel count means higher funnel index
+    result_dict = {key: counter_distance[key] * counter_count[key] / counter_time_difference[key] for key in counter_time_difference if key in counter_time_difference and counter_time_difference[key] != 0}
+
+    # Reformatting result_dict to result_df
+    result_df = pd.DataFrame.from_dict(result_dict, orient='index', columns=['funnel_index']).reset_index()
+
+    time_diff_df = pd.DataFrame.from_dict(normalized_funnel_time_difference_dict, orient='index', columns=['time_index']).reset_index()
+    distance_df = pd.DataFrame.from_dict(normalized_funnel_distance_dict, orient='index', columns=['distance_index']).reset_index()
+    count_df = pd.DataFrame.from_dict(normalized_funnel_count_dict, orient='index', columns=['count_index']).reset_index()
+
+    # Rename the column
+    result_df.rename(columns={'index': 'customer_id'}, inplace=True)
+    time_diff_df.rename(columns={'index': 'customer_id'}, inplace=True)
+    distance_df.rename(columns={'index': 'customer_id'}, inplace=True)
+    count_df.rename(columns={'index': 'customer_id'}, inplace=True)
+    sub_index_df = time_diff_df.merge(distance_df, on='customer_id').merge(count_df, on='customer_id')
+
+    # Ensure values are sorted for plotting
+    result_df = result_df.sort_values(by='funnel_index', ascending=True)
+
+    # Get the 10th percentile cutoff value
+    values = result_df['funnel_index']
+    perc_99_value = values.quantile(0.99)
+    perc_95_value = values.quantile(0.95)
+    perc_90_value = values.quantile(0.9)
+
+    result_df['funnel_points'] = result_df['funnel_index'].apply(
+        lambda x: 3 if x >= perc_99_value
+        else 2 if x >= perc_95_value and x < perc_99_value
+        else 1 if x >= perc_90_value and x < perc_95_value
+        else 0
+    )
+
+    return result_df, sub_index_df
+
+def apply_points_to_index(df):
+    def apply_points_positive(df, index):
+        # Get the 10th percentile cutoff value
+        values = df[index]
+        perc_99_value = values.quantile(0.99)
+        perc_95_value = values.quantile(0.95)
+        perc_90_value = values.quantile(0.9)
+
+        result_df = df.copy()
+
+        result_df[f"{index}_point"] = result_df[index].apply(
+            lambda x: 3 if x >= perc_99_value
+            else 2 if x >= perc_95_value and x < perc_99_value
+            else 1 if x >= perc_90_value and x < perc_95_value
+            else 0
+    )
+        return result_df
+
+    def apply_points_negative(df, index):
+        # Get the 10th percentile cutoff value
+        values = df[index]
+        first_percentile_value = values.quantile(0.01)
+        fifth_percentile_value = values.quantile(0.05)
+        tenth_percentile_value = values.quantile(0.1)
+
+        result_df = df.copy()
+
+        result_df[f"{index}_point"] = result_df[index].apply(
+            lambda x: 3 if x <= first_percentile_value
+            else 2 if x <= fifth_percentile_value and x > first_percentile_value
+            else 1 if x <= tenth_percentile_value and x > fifth_percentile_value
+            else 0)
+
+        return result_df
+
+    df_new = apply_points_negative(df, 'time_index')
+    df_new = apply_points_positive(df_new, 'distance_index')
+    df_new = apply_points_positive(df_new, 'count_index')
+
+    return df_new
+
+df_funnel, df_sub_scores = calculate_funnel_points(df_abm, df_card, locations_dict)
 print(df_funnel.head(5))
 print(len(df_funnel))
+
+df_sub_scores = apply_points_to_index(df_sub_scores)
+
+df_sub_scores.head(5)
+
+df_sub_scores.describe()
+
+for col in df_sub_scores.columns:
+  counts = df_sub_scores[col].value_counts()
+  print(f"Column: {col}\n{counts}\n")
 
 print(df_funnel.head(5))
 
 # prompt: I want to map the structuring_points with the same customer_id in the df_structure to df_general.csv
 
 # Merge the dataframes based on 'customer_id'
-df_merged = pd.merge(df, df_structure, on='customer_id', how='left')
+df_merged = pd.merge(df_general, df_structure, on='customer_id', how='left')
 
 # Merge the dataframes based on 'customer_id'
 df_merged = pd.merge(df_merged, df_funnel, on='customer_id', how='left')
@@ -554,12 +690,14 @@ df_merged = pd.merge(df_merged, df_funnel, on='customer_id', how='left')
 df_merged = pd.merge(df_merged, df_structure, on='customer_id', how='left')
 
 # Merge the dataframes based on 'customer_id'
-# df_merged = pd.merge(df_merged, df_funnel_sub_score, on='customer_id', how='left')
+df_merged = pd.merge(df_merged, df_sub_scores, on='customer_id', how='left')
 
 # Replace NaN values with 0
 df_merged.fillna(0, inplace=True)
 
-# Calculate the number of missing information in the kyc data set. Any missing data will add 0.5 point for
+len(df_general) == df_merged.shape[0]
+
+# Calculate the number of missing information in the kyc data set. Any missing data will add 1 point for
 def assign_kyc_missing_score(
     df_kyc: pd.DataFrame,
     customer_col: str = "customer_id",
@@ -575,7 +713,7 @@ def assign_kyc_missing_score(
     """
     all_cols = df_kyc.columns.tolist()
     cols_to_check = [c for c in all_cols if c != customer_col]
-    missing_counts = df_kyc[cols_to_check].isnull().sum(axis=1)*0.5
+    missing_counts = df_kyc[cols_to_check].isnull().sum(axis=1)
 
     # Create a result DataFrame with just [customer_col, score_col]
     result_df = df_kyc[[customer_col]].copy()
@@ -596,7 +734,14 @@ df_merged = df_merged.merge(df_kyc_score, on="customer_id", how="left")
 
 # 0 for no missing value
 df_merged["score_missing_kyc"] = df_merged["score_missing_kyc"].fillna(0)
-print(df_merged.head(5))
+
+print(df_merged.shape[0])
+
+df_merged = df_merged.drop("structuring_points_y", axis=1)
+
+df_merged.columns
+
+df_merged.head(5)
 
 # prompt: write df_merged as new_general_table.csv into my current google drive folder
 new_general_table_path = os.path.join(interim_dir, "new_general_table.csv")

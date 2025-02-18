@@ -39,8 +39,8 @@ feature_all = ['total_debit_amount_cad', 'total_credit_amount_cad',
        'avg_transaction_interval_day', 'mode_transaction_interval_day',
        'mode_transaction_type', 'date_range', 'max_credit_transaction_amount',
        'avg_credit_transaction_amount', 'max_debit_transaction_amount',
-       'avg_debit_transaction_amount', 'structuring_points_x', 'funnel_index',
-       'funnel_points', 'structuring_points_y', 'score_missing_kyc']
+       'avg_debit_transaction_amount',  'funnel_index',
+       'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
 
 # Check the for all the feature above before building the model
 
@@ -58,12 +58,11 @@ plt.show()
 # This is all the final features we are going to use for clustering
 # Removed: Total credit amount,debit_count, credit_count,max_credit_transaction_amount,max_debit_transaction_amount,structuring_points_x,count_index,funnel_points 'mode_transaction_type', 'date_range',
 
-feature_final = ['total_debit_amount_cad',
-        'transaction_frequency',
+feature_final = ['total_debit_amount_cad', 'transaction_frequency',
        'avg_transaction_interval_day', 'mode_transaction_interval_day',
-       'avg_credit_transaction_amount',
-       'avg_debit_transaction_amount',
-       'funnel_points', 'structuring_points_y', 'score_missing_kyc']
+       'avg_credit_transaction_amount', 
+       'avg_debit_transaction_amount', 'structuring_points_x', 
+       'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
 
 correlation_matrix = df[feature_final].corr()
 
