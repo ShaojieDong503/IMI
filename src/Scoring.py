@@ -30,7 +30,7 @@ eft_path = os.path.join(input_dir, 'eft.csv')
 emt_path = os.path.join(input_dir, 'emt.csv')
 wire_path = os.path.join(input_dir, 'wire.csv')
 general_table_path = os.path.join(interim_dir, 'general_table.csv')
-kyc_path = os.path.join(input_dir, 'kyc_table.csv')
+kyc_path = os.path.join(input_dir, 'kyc.csv')
 
 df = pd.read_csv(general_table_path)
 df_abm = pd.read_csv(abm_path)
