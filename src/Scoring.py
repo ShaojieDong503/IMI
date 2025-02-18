@@ -18,7 +18,7 @@ from pathlib import Path
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 interim_dir = os.path.join(output_dir, 'interim')
-resource_dir = os.getenv('RESOURCES_DIR', '/resources')
+resource_dir = os.getenv('RESOURCES_DIR', '/mnt/resources')
 
 def ensure_dir(path):
     Path(interim_dir).mkdir(parents=True, exist_ok=True)
