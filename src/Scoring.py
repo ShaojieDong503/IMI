@@ -467,80 +467,6 @@ class clean_funnel():
         return normalized_funnel_distance_dict, normalized_funnel_time_difference_dict
 
 
-def calculate_funnel_points(df_abm, df_card, locations_dict):
-
-    Funnel = clean_funnel()
-
-    # Formatting dfs
-    df_abm_cleaned = Funnel.clean_df(df_abm)
-    df_card_cleaned = Funnel.clean_df(df_card)
-
-    df_abm_cleaned['transaction_type'] = "abm"
-    df_card_cleaned['transaction_type'] = "card"
-
-    # Geoencoding dfs
-
-    # Read all_location_dict.json as locations_dict
-
-    # Transform all keys in the dictionary into upper case
-    locations_dict = {k.upper(): v for k, v in locations_dict.items()}
-
-    # Geoencoding dfs
-    stacked_df = Funnel.geoencode_df(df_abm_cleaned, df_card_cleaned, locations_dict)
-
-    # Count the number of null values in df
-    nan_count_dict = Funnel.count_row_with_na(stacked_df)
-
-    # drop the rows that contains nan value
-    stacked_df.dropna(subset=['country','province','city', 'latitude', 'longitude'], inplace=True)
-
-    # Apply furthur transformation
-    filtered_df = Funnel.check_funnel_transaction(stacked_df, locations_dict)
-
-    # Calculate the Funnel Transaction frequnecy count score (in dictionary format)
-    normalized_funnel_count_dict = Funnel.check_funnel_count(filtered_df, nan_count_dict)
-
-    # Calculate the Funnel distance and time score (in dictionary format)
-    normalized_funnel_distance_dict, normalized_funnel_time_difference_dict = Funnel.calculate_time_distance_dict(filtered_df)
-
-    import heapq
-
-    # Get the second lowest value
-    second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
-    lowest_time_diff = second_lowest/10
-
-    normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in normalized_funnel_time_difference_dict.items()}
-
-    counter_distance = Counter(normalized_funnel_distance_dict)
-    counter_time_difference = Counter(normalized_funnel_time_difference_dict)
-    counter_count = Counter(normalized_funnel_count_dict)
-
-    # Funnel Index Calculate, longer distance, smaller time difference and larger funnel count means higher funnel index
-    result_dict = {key: counter_distance[key] * counter_count[key] / counter_time_difference[key] for key in counter_time_difference if key in counter_time_difference and counter_time_difference[key] != 0}
-
-    # Reformatting result_dict to result_df
-    result_df = pd.DataFrame.from_dict(result_dict, orient='index', columns=['funnel_index']).reset_index()
-
-    result_df.rename(columns={'index': 'customer_id'}, inplace=True)
-
-    # Ensure values are sorted for plotting
-    result_df = result_df.sort_values(by='funnel_index', ascending=True)
-
-    # Get the 10th percentile cutoff value
-    values = result_df['funnel_index']
-    first_percentile_value = values.quantile(0.99)
-    fifth_percentile_value = values.quantile(0.95)
-    tenth_percentile_value = values.quantile(0.9)
-
-    result_df['funnel_points'] = result_df['funnel_index'].apply(
-        lambda x: 3 if x >= first_percentile_value
-        else 2 if x >= fifth_percentile_value and x < first_percentile_value
-        else 1 if x >= tenth_percentile_value and x < fifth_percentile_value
-        else 0
-    )
-
-    return result_df
-
 def calculate_funnel_points(df_abm, df_card,locations_dict):
 
     Funnel = clean_funnel()
@@ -665,14 +591,8 @@ def apply_points_to_index(df):
     return df_new
 
 df_funnel, df_sub_scores = calculate_funnel_points(df_abm, df_card, locations_dict)
-print(df_funnel.head(5))
-print(len(df_funnel))
 
 df_sub_scores = apply_points_to_index(df_sub_scores)
-
-df_sub_scores.head(5)
-
-df_sub_scores.describe()
 
 for col in df_sub_scores.columns:
   counts = df_sub_scores[col].value_counts()
