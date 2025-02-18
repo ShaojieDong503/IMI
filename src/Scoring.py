@@ -43,7 +43,7 @@ df_card = pd.read_csv(card_path)
 df_kyc = pd.read_csv(kyc_path)
 
 resource_path = os.path.join(resource_dir, 'all_location_dict.json')
-with open(os.path.join(resource_path, 'all_location_dict.json')) as f:
+with open(resource_path, 'all_location_dict.json') as f:
     locations_dict = json.load(f)
 
 class Structure_clean:
