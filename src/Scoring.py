@@ -18,6 +18,7 @@ from pathlib import Path
 input_dir = os.getenv('INPUT_DIR', '/input') 
 output_dir = os.getenv('OUTPUT_DIR', '/output') 
 interim_dir = os.path.join(output_dir, 'interim')
+resource_dir = os.getenv('RESOURCES_DIR', '/resources')
 
 def ensure_dir(path):
     Path(interim_dir).mkdir(parents=True, exist_ok=True)
@@ -41,7 +42,8 @@ df_cheque = pd.read_csv(cheque_path)
 df_card = pd.read_csv(card_path)
 df_kyc = pd.read_csv(kyc_path)
 
-with open(os.path.join(input_dir, 'all_location_dict.json')) as f:
+resource_path = os.path.join(resource_dir, 'all_location_dict.json')
+with open(os.path.join(resource_path, 'all_location_dict.json')) as f:
     locations_dict = json.load(f)
 
 class Structure_clean:
