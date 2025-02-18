@@ -15,8 +15,8 @@ import math
 import os
 from pathlib import Path
 
-input_dir = os.getenv('INPUT_DIR', '/input') 
-output_dir = os.getenv('OUTPUT_DIR', '/output') 
+input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 interim_dir = os.path.join(output_dir, 'interim')
 resource_dir = os.getenv('RESOURCES_DIR', '/resources')
 

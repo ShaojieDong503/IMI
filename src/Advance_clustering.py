@@ -19,8 +19,8 @@ import plotly.express as px
 import os
 from pathlib import Path
 
-input_dir = os.getenv('INPUT_DIR', '/input') 
-output_dir = os.getenv('OUTPUT_DIR', '/output') 
+input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 interim_dir = os.path.join(output_dir, 'interim')
 task2_output_path = os.path.join(output_dir, 'task2.csv')
 df = pd.read_csv(task2_output_path)

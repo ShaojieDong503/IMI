@@ -24,10 +24,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 
 # Create input/output directories
-RUN mkdir -p /mnt/input /mnt/output
+RUN mkdir -p /mnt/data /mnt/output
 
 # Copy input files into /mnt/input
-COPY input/ /mnt/input/
+COPY input/ /mnt/data/
 
 
 COPY script.sh .
