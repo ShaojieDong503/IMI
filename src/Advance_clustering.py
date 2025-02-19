@@ -24,6 +24,10 @@ output_dir = os.getenv('OUTPUT_DIR', '/mnt/output')
 output_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2') 
 interim_dir = os.path.join(output_dir, 'interim')
 task2_output_path = os.path.join(interim_dir, 'customer_embeddings.csv')
+
+def ensure_dir(path):
+    Path(path).mkdir(parents=True, exist_ok=True)
+
 df = pd.read_csv(task2_output_path)
 df.head()
 
@@ -128,6 +132,7 @@ def plot_radar_chart(cluster_means, features):
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
     img1_output_path = os.path.join(output_image, 'adv_img1.png')
+    ensure_dir( img1_output_path)
     plt.savefig(img1_output_path, dpi=300, bbox_inches='tight')
 
 
@@ -137,5 +142,6 @@ key_features = list(X.columns)[:-1]
 plot_radar_chart(cluster_means, key_features)
 
 
-task2_output_path = os.path.join(output_dir, 'addtional.csv')
-df.to_csv(task2_output_path,index=False)
+task2_output_path_2 = os.path.join(output_image, 'addtional.csv')
+ensure_dir(task2_output_path_2)
+df.to_csv(task2_output_path_2,index=False)

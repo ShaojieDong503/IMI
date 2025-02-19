@@ -20,12 +20,12 @@ from pathlib import Path
 
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
-output_image = os.getenv('OUTPUT_DIR', '/mnt/output/images') 
+output_task1 = os.path.join(output_dir, 'task1')
 interim_dir = os.path.join(output_dir, 'interim')
 
 def ensure_dir(path):
-    Path(interim_dir).mkdir(parents=True, exist_ok=True)
-
+    Path(path).mkdir(parents=True, exist_ok=True)
+ 
 new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
 card_path = os.path.join(input_dir, 'card.csv')
 
@@ -140,7 +140,8 @@ fig = px.scatter(
 # Show the interactive plot
 fig.show()
 
-img1_output_path = os.path.join(output_image, 'base_img1.png')
+img1_output_path = os.path.join(output_task1, 'base_img1.png')
+ensure_dir(img1_output_path)
 fig.write_image(img1_output_path) 
 
 # Create a stacked bar plot
@@ -153,7 +154,8 @@ fig = px.histogram(
 
 # Show the plot
 fig.show()
-img2_output_path = os.path.join(output_image, 'base_img2.png')
+img2_output_path = os.path.join(output_task1, 'base_img2.png')
+ensure_dir(img2_output_path)
 fig.write_image(img2_output_path) 
 
 df.columns
@@ -263,7 +265,7 @@ threshold = df["score_total"].quantile(0.995)
 df["bad_actor"] = df["score_total"] > threshold.astype(int)
 
 
-task1_output_path = os.path.join(output_dir, 'task1.csv')
+task1_output_path = os.path.join(output_task1, 'task1.csv')
 ensure_dir(task1_output_path)
 df.to_csv(task1_output_path, index=False)
 
