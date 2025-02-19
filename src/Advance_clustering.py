@@ -128,7 +128,7 @@ def plot_radar_chart(cluster_means, features):
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
     img1_output_path = os.path.join(output_image, 'adv_img1.png')
-    fig.write_image(img1_output_path) 
+    plt.savefig(img1_output_path, dpi=300, bbox_inches='tight')
 
 
 
