@@ -25,7 +25,8 @@ interim_dir = os.path.join(output_dir, 'interim')
 
 def ensure_dir(path):
     Path(path).mkdir(parents=True, exist_ok=True)
- 
+ensure_dir(output_task1)
+
 new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
 card_path = os.path.join(input_dir, 'card.csv')
 
@@ -264,7 +265,6 @@ df["bad_actor"] = df["score_total"] > threshold.astype(int)
 
 
 task1_output_path = os.path.join(output_task1, 'task1.csv')
-ensure_dir(task1_output_path)
 df.to_csv(task1_output_path, index=False)
 
 df['bad_actor'].value_counts()
