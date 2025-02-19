@@ -111,13 +111,13 @@ df['cluster'] = clusters
 def plot_radar_chart(cluster_means, features):
     n_features = len(features)
     angles = np.linspace(0, 2 * np.pi, n_features, endpoint=False).tolist()
-    angles += angles[:1]  # 闭合雷达图
+    angles += angles[:1] 
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'polar': True})
 
     for idx, (cluster, row) in enumerate(cluster_means.iterrows()):
         values = row[features].tolist()
-        values += values[:1]  # 闭合数据
+        values += values[:1]  
         ax.plot(angles, values, linewidth=1, linestyle='solid', label=f'Cluster {cluster}')
         ax.fill(angles, values, alpha=0.1)
 
@@ -127,7 +127,7 @@ def plot_radar_chart(cluster_means, features):
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
 cluster_means = X.groupby('cluster').mean()
-key_features = ['embedding_0', 'embedding_1', 'embedding_2', 'embedding_3', 'embedding_4']
+key_features = list(X.columns)[:-1]
 plot_radar_chart(cluster_means, key_features)
 
 
