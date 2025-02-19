@@ -62,7 +62,7 @@ def get_base_clustering(input_dir, output_dir, interim_dir):
 
     plt.title('Correlation Matrix Heatmap', fontsize=16)
 
-    plt.show()
+    plt.savefig(output_dir + 'Correlation Matrix Heatmap final')
 
     # Scale the features
     scaler = StandardScaler()
@@ -122,7 +122,7 @@ def get_base_clustering(input_dir, output_dir, interim_dir):
     )
 
     # Show the interactive plot
-    fig.savefig(output_dir + 'Interactive K-Means Clustering Visualization')
+    fig.write_image(output_dir + 'Interactive K-Means Clustering Visualization.png')
 
     # Create a stacked bar plot
     fig = px.histogram(
@@ -133,7 +133,7 @@ def get_base_clustering(input_dir, output_dir, interim_dir):
     )
 
     # Show the plot
-    fig.savefig(output_dir + "Cluster bar plot")
+    fig.write_image(output_dir + "Cluster bar plot.png")
 
 
 

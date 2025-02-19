@@ -10,11 +10,11 @@ def main():
     output_path = "../output/"
     interim_path = "../interim/"
     resources_path = "../resources/"
-    get_eda(input_path, interim_path)
-    get_score(input_path, interim_path, resources_path)
-    get_embedding(output_path + "task2/", interim_path)
+    #get_eda(input_path, interim_path)
+    #get_score(input_path, interim_path, resources_path)
+    #get_embedding(output_path + "task2/", interim_path)
     get_base_clustering(input_path, output_path + "task1/", interim_path)
-    get_advanced_clustering(input_path, output_path+"task2/", interim_path)
+    #get_advanced_clustering(input_path, output_path+"task2/", interim_path)
 
 
 if __name__ == "__main__":

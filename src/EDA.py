@@ -291,8 +291,9 @@ def get_eda(input_dir, interim_dir):
     merged_df_final["cash_ratio"] = merged_df_final["cash_ratio"].fillna(0)
 
     # output the data file
-    general_table_path = interim_dir + "general_table"
+    general_table_path = interim_dir + "general_table.csv"
     merged_df_final.to_csv(general_table_path, index=False)
+    print("EDA done")
 
 # df_wire.to_csv("/content/drive/My Drive/IMI_Data/new_wire.csv", index=False)
 # df_emt.to_csv("/content/drive/My Drive/IMI_Data/new_emt.csv", index=False)

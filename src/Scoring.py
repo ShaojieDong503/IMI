@@ -684,6 +684,7 @@ def assign_kyc_missing_score(
 
 def get_score(input_dir, interim_dir, resource_dir):
     # Read all the data
+    print("start score")
     wire_path = input_dir + 'wire.csv'
     emt_path = input_dir + 'emt.csv'
     eft_path = input_dir + 'eft.csv'
@@ -764,11 +765,12 @@ def get_score(input_dir, interim_dir, resource_dir):
     # 0 for no missing value
     df_merged["score_missing_kyc"] = df_merged["score_missing_kyc"].fillna(0)
 
-    df_merged = df_merged.drop("structuring_points_y", axis=1)
+    #df_merged = df_merged.drop("structuring_points_y", axis=1)
 
     # prompt: write df_merged as new_general_table.csv into my current google drive folder
     new_general_table_path = interim_dir + "new_general_table.csv"
     df_merged.to_csv(new_general_table_path, index=False)
+    print("score done")
 
     # 第一笔交易和Onboarding time/location比较
     # 下载北美所有城市的coordinates
