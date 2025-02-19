@@ -4,7 +4,7 @@
 3. [Exploratory data analysis(EDA)](#EDA)
     - [Dataset Overview](#data-overview)
     - [Data Cleaning](#data-cleaning)
-    - [Feature Engineering](#feature-eng)
+    - [Feature Engineering](#feature-engineering)
 4. [Task 1: Unsupervised Approach on Money Landuary](#task1)
 5. [Task 2: Contrastive Learning](#task2)
 7. [Finding](#finding)
@@ -15,7 +15,7 @@
 ## Data Overview
 ## Data Cleaning
 ## Feature Engineering
-#Task1
-#Task2
-#Finding
-#Conclusion
+# Task1
+# Task2
+# Finding
+# Conclusion
