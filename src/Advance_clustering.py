@@ -22,7 +22,7 @@ from pathlib import Path
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 interim_dir = os.path.join(output_dir, 'interim')
-task2_output_path = os.path.join(output_dir, 'task2.csv')
+task2_output_path = os.path.join(interim_dir, 'customer_embeddings.csv')
 df = pd.read_csv(task2_output_path)
 df.head()
 
@@ -42,10 +42,15 @@ def remove_high_correlation(df, threshold=0.6):
 
     #
     for i in range(len(corr_matrix.columns)):
-        for j in range(i):
+        for j in range(i+1, len(corr_matrix.columns)):
             if corr_matrix.iloc[i, j] > threshold:
-                colname = corr_matrix.columns[i]
-                drop_cols.add(colname)
+                col_i = corr_matrix.columns[i]
+                col_j = corr_matrix.columns[j]
+                
+                if corr_matrix[col_i].mean() < corr_matrix[col_j].mean():
+                    drop_cols.add(col_j)
+                else:
+                    drop_cols.add(col_i)
 
     return df.drop(columns=drop_cols), drop_cols
 
@@ -125,3 +130,6 @@ cluster_means = X.groupby('cluster').mean()
 key_features = ['embedding_0', 'embedding_1', 'embedding_2', 'embedding_3', 'embedding_4']
 plot_radar_chart(cluster_means, key_features)
 
+
+task2_output_path = os.path.join(output_dir, 'addtional.csv')
+df.to_csv(task2_output_path,index=False)
