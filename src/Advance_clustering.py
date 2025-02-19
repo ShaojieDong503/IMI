@@ -14,28 +14,9 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
-import plotly.express as px
-
 import os
-from pathlib import Path
 
-input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
-output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
-interim_dir = os.path.join(output_dir, 'interim')
-task2_output_path = os.path.join(output_dir, 'task2.csv')
-df = pd.read_csv(task2_output_path)
-df.head()
 
-# Check correlation for all the
-
-X = df.drop(columns=['customer_id'])
-correlation_matrix = X.corr()
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
-plt.title('Correlation Matrix Heatmap', fontsize=16)
-
-plt.show()
-
-# Drop features with high correlation
 def remove_high_correlation(df, threshold=0.6):
     corr_matrix = df.corr().abs()
     drop_cols = set()
@@ -49,79 +30,94 @@ def remove_high_correlation(df, threshold=0.6):
 
     return df.drop(columns=drop_cols), drop_cols
 
-X_filtered, dropped_cols = remove_high_correlation(X, threshold=0.6)
 
-correlation_matrix = X_filtered.corr()
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
-plt.title('Correlation Matrix Heatmap', fontsize=16)
+def get_advanced_clustering(input_dir, output_dir, interim_dir):
+    task2_output_path = output_dir + 'task2.csv'
 
-# Use all feature after remove high-correlated ones
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X_filtered)
-df_scaled = pd.DataFrame(X_scaled, columns=X_filtered.columns)
+    df = pd.read_csv(task2_output_path)
+    df.head()
 
-# Build K-means Clustering
-silhouette_scores = []
-k_range = range(2, 11)
+    # Check correlation for all the
 
+    X = df.drop(columns=['customer_id'])
+    correlation_matrix = X.corr()
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
+    plt.title('Correlation Matrix Heatmap', fontsize=16)
 
-inertia = []
-silhouette_scores = []
+    plt.savefig(output_dir + 'Correlation Matrix Heatmap')
 
-for k in k_range:
-    kmeans = KMeans(n_clusters=k, random_state=42)
+    # Drop features with high correlation
+
+    X_filtered, dropped_cols = remove_high_correlation(X, threshold=0.6)
+
+    correlation_matrix = X_filtered.corr()
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
+    plt.title('Correlation Matrix Heatmap', fontsize=16)
+
+    # Use all feature after remove high-correlated ones
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_filtered)
+    df_scaled = pd.DataFrame(X_scaled, columns=X_filtered.columns)
+
+    # Build K-means Clustering
+    silhouette_scores = []
+    k_range = range(2, 11)
+
+    inertia = []
+    silhouette_scores = []
+
+    for k in k_range:
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        clusters = kmeans.fit_predict(df_scaled)
+        inertia.append(kmeans.inertia_)
+        silhouette_scores.append(silhouette_score(df_scaled, clusters))
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.plot(k_range, inertia, marker='o', linestyle='--', color='blue')
+    plt.xticks(k_range)
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Inertia')
+    plt.title('Elbow Method for Optimal Clusters')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(k_range, silhouette_scores, marker='o', linestyle='--', color='green')
+    plt.xticks(k_range)
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Silhouette Score')
+    plt.title('Silhouette Method for Optimal Clusters')
+
+    plt.tight_layout()
+    plt.savefig(output_dir + "Elbow Method for Optimal Clusters & Silhouette Method for Optimal Clusters")
+
+    # Use the Best K for the model
+    chosen_k = k_range[np.argmax(silhouette_scores)]
+    print(chosen_k)
+
+    kmeans = KMeans(n_clusters=chosen_k, random_state=71)
     clusters = kmeans.fit_predict(df_scaled)
-    inertia.append(kmeans.inertia_)
-    silhouette_scores.append(silhouette_score(df_scaled, clusters))
+    X['cluster'] = clusters
+    df['cluster'] = clusters
 
+    def plot_radar_chart(cluster_means_plot, features):
+        n_features = len(features)
+        angles = np.linspace(0, 2 * np.pi, n_features, endpoint=False).tolist()
+        angles += angles[:1]  # 闭合雷达图
 
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-plt.plot(k_range, inertia, marker='o', linestyle='--', color='blue')
-plt.xticks(k_range)
-plt.xlabel('Number of Clusters (k)')
-plt.ylabel('Inertia')
-plt.title('Elbow Method for Optimal Clusters')
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'polar': True})
 
+        for idx, (cluster, row) in enumerate(cluster_means_plot.iterrows()):
+            values = row[features].tolist()
+            values += values[:1]  # 闭合数据
+            ax.plot(angles, values, linewidth=1, linestyle='solid', label=f'Cluster {cluster}')
+            ax.fill(angles, values, alpha=0.1)
 
-plt.subplot(1, 2, 2)
-plt.plot(k_range, silhouette_scores, marker='o', linestyle='--', color='green')
-plt.xticks(k_range)
-plt.xlabel('Number of Clusters (k)')
-plt.ylabel('Silhouette Score')
-plt.title('Silhouette Method for Optimal Clusters')
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_thetagrids(np.degrees(angles[:-1]), features)
+        plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+        plt.savefig(output_dir + "features")
 
-plt.tight_layout()
-plt.show()
-
-# Use the Best K for the model
-chosen_k = k_range[np.argmax(silhouette_scores)]
-print(chosen_k)
-
-kmeans = KMeans(n_clusters=chosen_k , random_state=71)
-clusters = kmeans.fit_predict(df_scaled)
-X['cluster'] = clusters
-df['cluster'] = clusters
-
-def plot_radar_chart(cluster_means, features):
-    n_features = len(features)
-    angles = np.linspace(0, 2 * np.pi, n_features, endpoint=False).tolist()
-    angles += angles[:1]  # 闭合雷达图
-
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'polar': True})
-
-    for idx, (cluster, row) in enumerate(cluster_means.iterrows()):
-        values = row[features].tolist()
-        values += values[:1]  # 闭合数据
-        ax.plot(angles, values, linewidth=1, linestyle='solid', label=f'Cluster {cluster}')
-        ax.fill(angles, values, alpha=0.1)
-
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.degrees(angles[:-1]), features)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-    plt.show()
-cluster_means = X.groupby('cluster').mean()
-key_features = ['embedding_0', 'embedding_1', 'embedding_2', 'embedding_3', 'embedding_4']
-plot_radar_chart(cluster_means, key_features)
-
+    cluster_means = X.groupby('cluster').mean()
+    key_features = ['embedding_0', 'embedding_1', 'embedding_2', 'embedding_3', 'embedding_4']
+    plot_radar_chart(cluster_means, key_features)
