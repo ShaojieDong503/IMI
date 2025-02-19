@@ -141,8 +141,7 @@ fig = px.scatter(
 fig.show()
 
 img1_output_path = os.path.join(output_task1, 'base_img1.png')
-ensure_dir(img1_output_path)
-fig.write_image(img1_output_path) 
+fig.write_image(img1_output_path)
 
 # Create a stacked bar plot
 fig = px.histogram(
@@ -155,7 +154,6 @@ fig = px.histogram(
 # Show the plot
 fig.show()
 img2_output_path = os.path.join(output_task1, 'base_img2.png')
-ensure_dir(img2_output_path)
 fig.write_image(img2_output_path) 
 
 df.columns
