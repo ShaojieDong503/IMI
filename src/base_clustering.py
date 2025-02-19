@@ -20,6 +20,7 @@ from pathlib import Path
 
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
+output_image = os.getenv('OUTPUT_DIR', '/mnt/output/images') 
 interim_dir = os.path.join(output_dir, 'interim')
 
 def ensure_dir(path):
@@ -126,6 +127,8 @@ clusters = kmeans.fit_predict(df_scaled)
 df['cluster'] = clusters
 
 # Create an interactive scatter plot
+
+
 fig = px.scatter(
     df,
     x='cluster',
@@ -137,6 +140,9 @@ fig = px.scatter(
 # Show the interactive plot
 fig.show()
 
+img1_output_path = os.path.join(output_image, 'base_img1.png')
+fig.write_image(img1_output_path) 
+
 # Create a stacked bar plot
 fig = px.histogram(
     df,
@@ -147,6 +153,8 @@ fig = px.histogram(
 
 # Show the plot
 fig.show()
+img2_output_path = os.path.join(output_image, 'base_img2.png')
+fig.write_image(img2_output_path) 
 
 df.columns
 

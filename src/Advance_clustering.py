@@ -21,6 +21,7 @@ from pathlib import Path
 
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
+output_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2') 
 interim_dir = os.path.join(output_dir, 'interim')
 task2_output_path = os.path.join(interim_dir, 'customer_embeddings.csv')
 df = pd.read_csv(task2_output_path)
@@ -126,6 +127,11 @@ def plot_radar_chart(cluster_means, features):
     ax.set_thetagrids(np.degrees(angles[:-1]), features)
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
+    img1_output_path = os.path.join(output_image, 'adv_img1.png')
+    fig.write_image(img1_output_path) 
+
+
+
 cluster_means = X.groupby('cluster').mean()
 key_features = list(X.columns)[:-1]
 plot_radar_chart(cluster_means, key_features)
