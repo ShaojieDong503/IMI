@@ -123,8 +123,8 @@ train_ds = SCARFDataset(data_scaled.to_numpy(),
 train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
 
 # ***Hyperparams***
-batch_size = 256 # larger takes more time
-epochs = 1000 # as large as possible
+batch_size = 150 # larger takes more time
+epochs = 700 # as large as possible
 output_dimension = 6 # output embedding dimension
 # ***Hyperparams***
 
@@ -197,7 +197,7 @@ df_embeddings['customer_id'] = df_embeddings['customer_id'].astype(df['customer_
 print(df_embeddings.head())
 
 task2_output_path = os.path.join(output_dir, 'task2.csv')
-task2_output_path = os.path.join(output_dir, 'task2/customer_embeddings.txt')
+task2_output_path = os.path.join(output_dir, 'customer_embeddings.txt')
 
 
 df.to_csv(task2_output_path, index=False, sep='\t')
