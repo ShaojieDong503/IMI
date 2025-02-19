@@ -198,10 +198,10 @@ print(df_embeddings.head())
 
 embedding_path = os.path.join(interim_dir, 'customer_embeddings.csv')
 ensure_dir(embedding_path)
-df.to_csv(embedding_path, index=False)
+df_embeddings.to_csv(embedding_path, index=False)
 
 
 task2_output_path = os.path.join(output_dir, 'customer_embeddings.txt')
-df.to_csv(task2_output_path, index=False, sep='\t')
+df_embeddings.to_csv(task2_output_path, index=False, sep='\t')
 
 df_embeddings.info
