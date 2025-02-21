@@ -21,9 +21,12 @@ from pathlib import Path
 
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
-output_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2') 
+output_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2')
+task1_output_dir = os.getenv(output_dir, '/mnt/output/task1')
 interim_dir = os.path.join(output_dir, 'interim')
 task2_output_path = os.path.join(interim_dir, 'customer_embeddings.csv')
+task1_output_path= os.path.join(task1_output_dir, 'task1.csv')
+
 
 def ensure_dir(path):
     Path(path).mkdir(parents=True, exist_ok=True)
@@ -46,7 +49,6 @@ def remove_high_correlation(df, threshold=0.6):
     corr_matrix = df.corr().abs()
     drop_cols = set()
 
-    #
     for i in range(len(corr_matrix.columns)):
         for j in range(i+1, len(corr_matrix.columns)):
             if corr_matrix.iloc[i, j] > threshold:
@@ -71,7 +73,7 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X_filtered)
 df_scaled = pd.DataFrame(X_scaled, columns=X_filtered.columns)
 
-# Build K-means Clustering
+# Build K-means Clustering using Elbow Method and Silhouette Method
 silhouette_scores = []
 k_range = range(2, 11)
 
@@ -132,7 +134,7 @@ def plot_radar_chart(cluster_means, features):
     ax.set_thetagrids(np.degrees(angles[:-1]), features)
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
-    img1_output_path = os.path.join(output_image, 'adv_img1.png')
+    img1_output_path = os.path.join(output_image, 'Embedding_radar.png')
     plt.savefig(img1_output_path, dpi=300, bbox_inches='tight')
 
 
@@ -142,5 +144,51 @@ key_features = list(X.columns)[:-1]
 plot_radar_chart(cluster_means, key_features)
 
 
-task2_output_path_2 = os.path.join(output_image, 'addtional.csv')
+task2_output_path_2 = os.path.join(output_image, 'embedding_clustering.csv')
 df.to_csv(task2_output_path_2,index=False)
+
+
+# Compare the clusters with task 1 results
+df_task1 = pd.read_csv(task1_output_path)
+df_task1['Cluster_2'] = clusters
+
+# Create an interactive scatter plot for avg_debit_transaction_amount
+fig = px.scatter(
+    df_task1,
+    x='Cluster_2',
+    y='avg_debit_transaction_amount',
+    color='Cluster_2',  # Color points by their cluster,
+    title='Interactive K-Means Clustering Visualization',
+)
+fig.update_xaxes(
+    tickmode='array',
+    tickvals=sorted(df['cluster'].unique()),  
+    ticktext=sorted(df['cluster'].unique())   
+)
+# Save the plot
+img2_output_path = os.path.join(output_image, 'Avg_debit_amount.png')
+fig.write_image(img2_output_path) 
+fig.show()
+
+# Create a stacked bar plot for the funnel points by cluster
+fig = px.histogram(
+    df_task1,
+    x='Cluster_2',
+    y='funnel_points',
+    color='Cluster_2'  # Color bars by their cluster
+)
+
+# Show the plot
+fig.show()
+img2_output_path = os.path.join(output_image, 'Funnel_points.png')
+fig.write_image(img2_output_path) 
+
+
+#Print out which cluster has the most bad actors
+print(df_task1.loc[(df_task1["bad_actor"] == True)]['Cluster_2'].value_counts())
+print(df_task1.loc[(df_task1["bad_actor"] == True)]['cluster'].value_counts().idxmax())
+print(df_task1['bad_actor'].value_counts())
+
+#Save the additional output
+task2_output_path_2 = os.path.join(output_image, 'addtional.csv')
+df_task1.to_csv(task2_output_path_2,index=False)

@@ -20,7 +20,7 @@ from tqdm.auto import tqdm
 import pandas as pd
 import os
 from pathlib import Path
-
+# mark the input and output directory
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 interim_dir = os.path.join(output_dir, 'interim')
@@ -124,7 +124,7 @@ train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
 
 # ***Hyperparams***
 batch_size = 256 # larger takes more time
-epochs = 700 # as large as possible
+epochs = 600 # as large as possible
 output_dimension = 6 # output embedding dimension
 # ***Hyperparams***
 
@@ -132,7 +132,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
 train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-
+# ***Change model***
 model = SCARF(
     input_dim=train_ds.shape[1],
     features_low=train_ds.features_low,
@@ -179,12 +179,13 @@ plt.ylabel("Loss")
 plt.title("Training Loss Curve")
 plt.show()
 
+
 train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
 train_embeddings = dataset_embeddings(model, train_loader, device)
 print(train_embeddings.shape)
 
-customer_ids = df['customer_id'].values  # 或 df.index 如果 customer_id 是索引
-
+customer_ids = df['customer_id'].values  
+# ***Change embedding_columns***
 embedding_columns = [f'embedding_{i}' for i in range(train_embeddings.shape[1])]
 
 df_embeddings = pd.DataFrame(
@@ -195,7 +196,7 @@ df_embeddings = pd.DataFrame(
 df_embeddings['customer_id'] = df_embeddings['customer_id'].astype(df['customer_id'].dtype)
 
 print(df_embeddings.head())
-
+# Save the embeddings
 embedding_path = os.path.join(interim_dir, 'customer_embeddings.csv')
 ensure_dir(embedding_path)
 df_embeddings.to_csv(embedding_path, index=False)
