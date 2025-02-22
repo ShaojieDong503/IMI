@@ -452,8 +452,11 @@ class clean_funnel():
         normalized_funnel_distance_dict = dict_normalization(funnel_distance_dict, 7)
 
         # Calculate the time difference between current and previous transactions
-
-        filtered_df['time_difference'] = filtered_df.apply(lambda row: (row['transaction_date'] - row['prev_transaction_date']).days, axis=1)
+        try:
+            filtered_df['time_difference'] = filtered_df.apply(lambda row: (row['transaction_date'] - row['prev_transaction_date']).days, axis=1)
+        except Exception as e:
+            normalized_funnel_time_difference_dict = {}
+            return normalized_funnel_distance_dict, normalized_funnel_time_difference_dict
 
         # The average time difference by customer
         funnel_time_difference_per_customer_df = (filtered_df.groupby('customer_id')['time_difference'].mean().reset_index(name='average_time'))
@@ -505,7 +508,12 @@ def calculate_funnel_points(df_abm, df_card,locations_dict):
     import heapq
 
     # Get the second lowest value
-    second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
+    try:
+        second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
+    except Exception as e:
+        result_df = pd.DataFrame(columns=['customer_id', 'funnel_index', 'funnel_points'])
+        sub_index_df = pd.DataFrame(columns=['customer_id', 'time_index', 'distance_index', 'count_index'])
+        return result_df, sub_index_df
     lowest_time_diff = second_lowest/10
 
     normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in normalized_funnel_time_difference_dict.items()}
