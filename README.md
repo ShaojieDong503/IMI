@@ -98,8 +98,10 @@ In addition to the k-means clustering, we also trained the *Customer Foundation 
 *SCARF (SELF-SUPERVISED CONTRASTIVE LEARNING USING RANDOM FEATURE CORRUPTION)* is a deep learning approach under contrastive learning domain trained to learn meaningful representations by distinguishing between similar and dissimilar data pairs
 - A *similar data pair* consists of an original data point and a corrupted version of itself. Corruption means making small changes to the data altering its features in a way that may change some details but keeps it related to the original.
 - A *dissimilar data pair* consists of an original data point and another data point from the dataset.
+
 During training, the SCARF model learns to pull similar data pairs closer while pushing dissimilar pairs further apart.
-### Goal
+
+## Goal
 The goal is to create embedding that act like locations in real life. Speaking with the example in our use case, users with similar transaction patterns, like frequent small cash deposits, will have close embedding. In contrast, a regular shopper will be far from someone making large money transfers.
 ### Specific Input/Output Format
 In our SCARF model, it takes engineered client records and risk scores based on their transaction history as input. The output is a 6-dimensional embedding that represents each client’s position in the feature space. The distance between two users' locations reflects how similar their transaction patterns are.
