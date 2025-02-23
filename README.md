@@ -92,11 +92,20 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 ## Feature Engineering
 # Task1
 ## K-means Clutering Model
-After prompt engineering process, based on the analysis, we carefully chose:
 
-'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day','avg_credit_transaction_amount', 'avg_debit_transaction_amount', 'structuring_points_x',  'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
+After the feature engineering process and data analysis, we carefully selected the following features for clustering:
 
-as selected features to group clients into different clusters using k-means approach. With our experiment, we decide to finally separate people in 4 clusters.
+'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day', 'avg_credit_transaction_amount', avg_debit_transaction_amount', 'structuring_points_x', 'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
+
+Using the K-Means algorithm, we determined that the optimal number of clusters is 4 based on our experiments.
+
+### Cluster Breakdown:
+- Cluster 1:
+- Cluster 2:
+- Cluster 3:
+- Cluster4:
+
+This segmentation allows us to analyze behavioral patterns within each group and derive actionable insights.
 
 # Task2
 ## *Customer Foundation Model* 
