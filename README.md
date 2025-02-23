@@ -95,7 +95,7 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 
 After the feature engineering process and data analysis, we carefully selected the following features for clustering:
 
-'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day', 'avg_credit_transaction_amount', avg_debit_transaction_amount', 'structuring_points_x', 'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
+'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day', 'avg_credit_transaction_amount', avg_debit_transaction_amount', 'structuring_points_x', 'funnel_points', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
 
 Using the K-Means algorithm, we determined that the optimal number of clusters is 4 based on our experiments.
 
