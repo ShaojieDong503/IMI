@@ -154,10 +154,81 @@ fig = px.histogram(
     y='funnel_points',
     color='cluster'  # Color bars by their cluster
 )
+img2_output_path = os.path.join(output_task1, 'Funnel_points.png')
+fig.write_image(img2_output_path) 
+
+
+
+# Create a clustered bar plot for the funnel points and structuring points comparison
+df_agg = df.groupby('cluster')[['funnel_points', 'structuring_points_x']].mean().reset_index()
+
+# Long Format
+df_long = df_agg.melt(
+    id_vars='cluster',
+    value_vars=['funnel_points', 'structuring_points_x'],
+    var_name='metric',
+    value_name='score'
+)
+
+# create a grouped bar plot
+fig = px.bar(
+    df_long,
+    x='cluster',
+    y='score',
+    color='metric',          # color using metric
+    barmode='group',         # group bars
+    title='Cluster Metrics Comparison',
+    labels={'score': 'Average Score', 'cluster': 'Cluster'},
+    color_discrete_map={
+        'funnel_points': 'red',      # color for funnel_points
+        'structuring_points_x': 'blue'
+    }
+)
+
+# optimize the layout
+fig.update_layout(
+    xaxis={'type': 'category'},          
+    legend_title='Metric Type',
+    hovermode='x unified'
+)
 
 # Show the plot
 fig.show()
-img2_output_path = os.path.join(output_task1, 'Funnel_points.png')
+img2_output_path = os.path.join(output_task1, 'Cluster_comparison_1.png')
+fig.write_image(img2_output_path) 
+
+
+# Clutsers and cash ratio
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='cash_ratio',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'cash_ratio.png')
+fig.write_image(img2_output_path) 
+
+# Cluster and Ecommerce ratio
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='ecommerce_ratio',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'ecommerce_ratio.png')
+fig.write_image(img2_output_path) 
+
+#Cluster and KYC missing score
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='score_missing_kyc',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'cluster_missing_scores.png')
 fig.write_image(img2_output_path) 
 
 df.columns

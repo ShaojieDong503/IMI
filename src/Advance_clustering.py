@@ -183,6 +183,76 @@ fig.show()
 img2_output_path = os.path.join(output_image, 'Funnel_points.png')
 fig.write_image(img2_output_path) 
 
+# Create a grouped bar plot for the average funnel and structuring points by cluster
+df_agg = df_task1.groupby('Cluster_2')[['funnel_points', 'structuring_points_x']].mean().reset_index()
+
+# Long Format
+df_long = df_agg.melt(
+    id_vars='Cluster_2',
+    value_vars=['funnel_points', 'structuring_points_x'],
+    var_name='metric',
+    value_name='score'
+)
+
+# create a grouped bar plot
+fig = px.bar(
+    df_long,
+    x='Cluster_2',
+    y='score',
+    color='metric',          # color using metric
+    barmode='group',         # group bars
+    title='Cluster Metrics Comparison',
+    labels={'score': 'Average Score', 'cluster': 'Cluster'},
+    color_discrete_map={
+        'funnel_points': 'red',      # color for funnel_points
+        'structuring_points_x': 'blue'
+    }
+)
+
+# optimize the layout
+fig.update_layout(
+    xaxis={'type': 'category'},          
+    legend_title='Metric Type',
+    hovermode='x unified'
+)
+
+fig.show()
+img2_output_path = os.path.join(output_image, 'comparison_points.png')
+fig.write_image(img2_output_path) 
+
+
+# Clutsers and cash ratio
+fig = px.histogram(
+    df_task1,
+    x='Cluster_2',
+    y='cash_ratio',
+    color='Cluster_2'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_image, 'cash_ratio.png')
+fig.write_image(img2_output_path) 
+
+# Cluster and Ecommerce ratio
+fig = px.histogram(
+    df_task1,
+    x='Cluster_2',
+    y='ecommerce_ratio',
+    color='Cluster_2'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_image, 'ecommerce_ratio.png')
+fig.write_image(img2_output_path) 
+
+
+
+
+
+
+
+
+
+
+
 
 #Print out which cluster has the most bad actors
 print(df_task1.loc[(df_task1["bad_actor"] == True)]['Cluster_2'].value_counts())
