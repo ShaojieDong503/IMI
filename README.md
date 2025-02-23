@@ -91,6 +91,13 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 ## Data Cleaning
 ## Feature Engineering
 # Task1
+## K-means Clutering Model
+After prompt engineering process, based on the analysis, we carefully chose:
+
+'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day','avg_credit_transaction_amount', 'avg_debit_transaction_amount', 'structuring_points_x',  'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
+
+as selected features to group clients into different clusters using k-means approach. With our experiment, we decide to finally separate people in 4 clusters.
+
 # Task2
 ## *Customer Foundation Model* 
 In addition to the k-means clustering, we also trained the *Customer Foundation Model* utilized SCARF to map client’s behavior into feature space, that is, the model will output each client's "location" based on their transaction history.
