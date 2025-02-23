@@ -256,7 +256,9 @@ fig.write_image(img2_output_path)
 
 #Print out which cluster has the most bad actors
 print(df_task1.loc[(df_task1["bad_actor"] == True)]['Cluster_2'].value_counts())
-print(df_task1.loc[(df_task1["bad_actor"] == True)]['cluster'].value_counts().idxmax())
+print(df_task1['Cluster_2'].value_counts())
+print(df_task1.loc[(df_task1["bad_actor"] == True)]['cluster'].value_counts())
+print(df_task1['cluster'].value_counts())
 print(df_task1['bad_actor'].value_counts())
 
 #Save the additional output
