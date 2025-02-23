@@ -7,3 +7,4 @@ plotly~=6.0.0
 tqdm==4.66.1
 torch==2.1.0
 scipy~=1.13.1
+kaleido
