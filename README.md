@@ -7,8 +7,7 @@
     - [Feature Engineering](#feature-engineering)
 4. [Task 1: Unsupervised Approach on Money Landuary](#task1)
 5. [Task 2: Customer Foundation Model](#task2)
-7. [Finding](#finding)
-8. [Conclusion](#conclusion)
+7. [Conclusion](#conclusion)
 # Introduction
 This project addresses the challenge of detecting potential money laundering activities in financial transaction data, where labeled ground truth ("bad actors") is unavailable. By combining domain-informed rule-based risk scoring with unsupervised machine learning, we developed a two-stage framework to:  
 1. **Identify high-risk customers** through behavioral red flags and cluster-based anomaly detection.  
@@ -19,6 +18,60 @@ This project addresses the challenge of detecting potential money laundering act
   - *Task 2*: Contrastive learning-derived customer embeddings + clustering to verify spatial concentration of high-risk users.  
 - **Interpretability-First Design**: Explicit risk scoring tied to observable behaviors paired with embedding-space explanations.  
 - **Adaptability**: Modular scoring rules and embedding models allow customization across industries within Canada.
+# Project Workflow  
+**A Dual-Phase Unsupervised Framework for AML Detection**  
+
+## 1. Data Integration & Preprocessing  
+### Inputs:  
+- Transaction data (CSVs: Card, ATM, ETF, Wire)  
+- KYC data (industry code, employee count, sales, etc.)  
+
+### Process:  
+1. **Exploratory Data Analysis (EDA)**  
+   - Merge transaction data into a unified **General Aggregate Table** (features: avg. transaction frequency, cash transaction ratio, etc.).  
+   - Handle KYC missingness via industry-specific imputation (e.g., fill "employee count" with sector median).  
+
+2. **Feature Engineering**  
+   - Calculate **Red Flag Scores** during EDA.  
+   - Remove high-correlation features.  
+
+
+## 2. Task 1: Rule-Guided Clustering  
+### Input:  
+- General Aggregate Table + Red Flag Scores  
+
+### Process:  
+1. **K-means Clustering**  
+   - Apply PCA for dimensionality reduction (retain 90% variance).  
+   - Optimize cluster count using **Elbow Method** (final k=4).  
+
+2. **Intra-Cluster Anomaly Scoring**  
+   - For each customer in a cluster:  
+     - Compare against cluster peers on 5 metrics:  
+       `(Transaction frequency, Total deposits, Total spending, Cash ratio, Ecommerce ratio)` 
+     - Detailed scoring system introduction are under [Task 1](#task1).
+
+3. **Final Risk Ranking**  
+   - Total Score = Red Flag Score + Intra-Cluster Anomaly Score  
+   - Flag customers in **Top 0.5%** as "High-Risk Candidates".  (0.5% can help us focus on exterme scores and have more flexibility compares to a fixed number)
+
+
+## 3. Task 2: Embedding-Based Validation  
+### Input:  
+- Same features as Task 1 
+
+### Process:  
+1. **Contrastive Learning for Embeddings**  
+   - Train a contrastive learning model to generate 6D customer embeddings.  
+   - Augmentation: Synthetic noise injection on transaction amounts/frequencies.  
+
+2. **Secondary Clustering**  
+   - Apply K-means clustering to embedding space.  
+   - Identify **Target Clusters** where High-Risk Candidates concentrate.  
+
+3. **Cross-Task Validation**  
+   - Compute overlap: If most High-Risk Candidate(Customer has a high score) concentrate in certain clusters, we say they share more spending behaviors and characteristics, which makes they more suspecious.  Customer who has a high score but not concentrate with others in a cluster means it has lower risk but still need to be monitored. 
+
 
 # Code Walkthrough
 ## Instructions
@@ -36,11 +89,13 @@ docker run --rm \
   --network none \
   aml-detector
 ```
+
+
 ## Output files
 After running the Docker image, all results will be stored in the `/mnt/output/` directory. The output files are structured into **three main folders**:
 
 ---
-### **customer_embedding.txt**  
+### **customer_embedding.txt**
 This file contains the embeddings for all customers.
 
 ### 📂 **1. Interim (`/mnt/output/interim/`)**
@@ -76,6 +131,7 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 | **File Name**            | **Description** |
 |--------------------------|----------------|
 | `additional.csv`    | Merges **Task 1 results with Task 2 clustering assignments** for deeper analysis. |
+|  `results_summary.txt`  | All cluster results from Task 1 and Task 2. |
 |  `Correlation.png`  | The correlation between all the features. |
 |  `cash_ratio.png`  | The visulization for cash ratio across all clusters. |
 |  `Cluster_comparison_1.png`  | The visulization to compare different socres across all clusters. |
@@ -91,21 +147,99 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 ## Data Cleaning
 ## Feature Engineering
 # Task1
+## The Scoring System
+**Rule-Based Detection of Suspicious Transaction Patterns**  
+
+
+### A. Structuring Detection  
+#### **Definition**  
+Structuring refers to the act of splitting large transactions into smaller amounts to evade regulatory reporting thresholds (e.g., $10,000 CAD under FINTRAC 24-hour rule, in this study, we believe 48-hour is a better threshold as the 'bad actors' are all trying to avoid the 24-hour rule).  
+
+#### **Detection Logic**  
+1. **Rolling Window Analysis**:  
+   - For each customer, calculate:  
+     - *Total debit/credit amounts* and *frequency* over a configurable window (default: 48 hours).  
+     - *Average transaction amount* per window.  
+   - **Flags**:  
+     - `Credit/Debit structuring`: Total amount ≥ $10,000 with average transaction < $10,000.  
+     - `Mixed structuring`: Both credit and debit structuring detected.  
+
+2. **Scoring**:  
+   | Scenario                     | Points |  
+   |------------------------------|--------|  
+   | Credit **OR** Debit Structuring | 1      |  
+   | Credit **AND** Debit Structuring | 2      |  
+
+---
+
+### B. Funnel Behavior Detection  
+#### **Definition**  
+Funnel behavior involves rapid cross-location transactions within short timeframes, indicating potential money movement across jurisdictions.  
+
+#### **Detection Logic**  
+1. **Key Metrics**:  
+   - **Geographic Dispersion** (Haversine distance between consecutive transactions).  
+   - **Time Compression** (Days between transactions in different locations).  
+   - **Transaction Frequency** (Unique locations per time window).  
+
+2. **Composite Index**:  
+
+- Scores normalized to [0,1] range using percentile ranks.  
+
+3. **Thresholds**:  
+
+| Percentile Range | Points |  
+|-------------------|--------|  
+| ≥99th             | 3      |  
+| 95th–99th         | 2      |  
+| 90th–95th         | 1      |  
+
+---
+
+### C. KYC Completeness Scoring  
+#### **Rules**  
+| Missing Field Type          | Points per Missing Field |  
+|-----------------------------|--------------------------|  
+| **Critical** (Industry code, Ownership) | 2                        |  
+| **Secondary** (Employee count, Sales) | 1                        |  
+| **Max Possible**            | 5                        |  
+
+---
+
+### D. Outlier Scoring (Intra-Cluster)  
+For each cluster, evaluate 5 metrics:  
+1. Total deposits  
+2. Total withdrawals  
+3. Cash transaction ratio  
+4. Transaction frequency  
+5. Ecommerce ratio
+
+**Thresholds**:  
+- >95th percentile of cluster: +1 point  
+- >99th percentile of cluster: +2 points  
+
+---
+Customer has a high score usually has the following characteristics:
+
+1. May have many high risk transactions that need to be reported
+2. We (as bank) may not know the customer well enough
+3. May be an critical customer as they are interact with our bank more than others
+
+Either situation reqires more attention on the customer, we need to keep monitoring the customer or verify the customer identity.
+
+
+
 ## K-means Clutering Model
 
 After the feature engineering process and data analysis, we carefully selected the following features for clustering:
 
 'total_debit_amount_cad', 'transaction_frequency','avg_transaction_interval_day', 'mode_transaction_interval_day', 'avg_credit_transaction_amount', avg_debit_transaction_amount', 'structuring_points_x', 'funnel_points', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio'
 
-Using the K-Means algorithm, we determined that the optimal number of clusters is 4 based on our experiments.
-
-### Cluster Breakdown:
-- Cluster 1:
-- Cluster 2:
-- Cluster 3:
-- Cluster4:
+Using the **K-Means algorithm** with **Inertia elbow method** and **Silhouette Scores**, we can determined that the optimal number of clusters for the data sets.(Optimal number of clusters may differ with different samples as the distribution will change)
 
 This segmentation allows us to analyze behavioral patterns within each group and derive actionable insights.
+## Summary
+Task 1 is providing a business view of the data. We can find the potential bad actors using the **'bad_actor'** column in the outputfile **Task1.csv**. We can also look at why each customer is a 'bad actor' using the scoring columns in the same csv file. 
 
 # Task2
 ## *Customer Foundation Model* 
@@ -121,68 +255,60 @@ During training, the SCARF model learns to pull similar data pairs closer while 
 The goal is to create embedding that act like locations in real life. Speaking with the example in our use case, users with similar transaction patterns, like frequent small cash deposits, will have close embedding. In contrast, a regular shopper will be far from someone making large money transfers.
 ### Specific Input/Output Format
 In our SCARF model, it takes engineered client records and risk scores based on their transaction history as input. The output is a 6-dimensional embedding that represents each client’s position in the feature space. The distance between two users' locations reflects how similar their transaction patterns are.
+## Summary
+For Task 2 output, please refer to the **additional.csv** where it's containing the output from Task1 and the clustering results from Task 2. Then you can refer to **reults_summary.txt** to find the customer and bad actors distribution for both task. 
+- *Task 1 Clusters*: Look under `Task 1 Cluster Distribution for Bad Actors`.
+- *Task 2 Clusters*: See `Final Cluster Distribution for Bad Actors`.  
 
-# Finding
-### A. High-Risk Customer Profile (Task 1)  
-1. **Red Flag Behaviors**:  
-   - **Case Study: SYNCID0000017075** (Top Risk Score):  
-     - *Transaction Anomalies*:  
-       - Extreme value dispersion: Single credit transaction ($1.56M) alongside micro-debits ($0.09).  
-       - High-frequency structuring: 16 transactions/day with alternating large credits/small debits.  
-     - *KYC Inconsistencies*:  
-       - Critical missing fields (province, sales data).  
-       - Industry mismatch: "Scientific Services" typically lacks such volatile cash flows.  
-   - **Cluster Validation**:  
-     - Cluster 3 (419 customers) contained **48.5% of all flagged bad actors** (16/33) despite representing only 2.8% of total customers.  
+**Visual Analysis**: Use radar charts (e.g., `embedding_radar.png`) to compare embedding distributions of high-risk clusters.
 
-2. **Rule Efficacy**:  
-   - Customers with ≥3 red flags showed **14× higher risk density** vs. others.  
-   - KYC missingness alone predicted 32% of eventual high-score users.  
-
-### B. Embedding Space Insights (Task 2)  
-1. **Spatial Validation of Risk**:  
-   - 89% of Task 1’s high-risk customers concentrated in **Embedding Cluster 2**, which exhibited:  
-     - Extreme deviations in *Embedding 3* (-1.13 vs. population mean -0.57): Linked to abnormal fund retention patterns.  
-     - Outlier values in *Embedding 5* (-1.00 vs. -0.41): Associated with disguised transaction chains.  
-
-2. **Actionable Signals**:  
-   - Customers >2σ below population mean in *Embedding 5* had **22× higher fraud likelihood**.  
-   - Embedding-driven clustering achieved 93% precision in retaining Task 1’s high-risk group while reducing false positives by 41% vs. pure rule-based methods.  
-
-### C. Cross-Task Consistency  
-- **SYNCID0000017075**: Ranked top 0.1% in both:  
-  - Task 1’s risk score (rule violations + cluster outliers).  
-  - Task 2’s embedding deviation (max Δ=0.98 in *Embedding 5*).  
-- **Cluster 3 Alignment**: The smallest cluster (18% of population) captured:  
-  - 48.5% of bad actors (Task 1).  
-  - 61% of embedding-space outliers (Task 2).  
 # Conclusion
-### A. Framework Efficacy  
-Our dual-task framework successfully bridges rule-based domain knowledge and data-driven insights to detect money laundering risks in unlabeled datasets:  
-1. **High Precision Targeting**:  
-   - Cluster 3 (2.8% of customers) captured **48.5% of high-risk actors**, enabling **17× more efficient monitoring** compared to blanket approaches.  
-   - Embedding-space deviations (e.g., *Embedding 5*) provided explainable signals, with extreme values correlating to **22× higher fraud likelihood**.  
 
-2. **Validation Rigor**:  
-   - Task 1 (rules + clustering) and Task 2 (embeddings) showed strong alignment:  
-     - 89% of Task 1’s high-risk users concentrated in Task 2’s outlier clusters.  
-     - Top-risk customer SYNCID0000017075 ranked as an outlier in both frameworks.  
+### Core Validation Logic
+1. **Dual-Layer Consistency**  
+   - **Rule-Based Filtering (Task 1)** identified high-risk customers through explicit behavioral anomalies (e.g., structuring, geographic dispersion).  
+   - **Embedding Clustering (Task 2)** independently revealed spatial aggregation of these flagged users, with large proportion concentrating in **1-2 target clusters**.  
+   - *Why It Matters*: This alignment proves that both explicit rules *and* latent transactional patterns contribute to risk detection.  
 
-3. **Adaptability**:  
-   - Modular design allows quick integration of new rules (e.g., crypto transaction patterns) or embedding architectures (e.g., graph neural networks).  
+2. **Complementary Signal Discovery**  
+   - High-risk customers exhibited **deviations in some embedding dimensions** (e.g., funds retention, transaction chain opacity) not captured by rule-based scores.  
+   - Conversely, embedding clusters with concentrated high-risk users showed **3-5× higher rule violation rates** than others.  
+   - *Implication*: Rules and embeddings are mutually reinforcing – one detects "known" risks, the other uncovers "hidden" patterns. 
 
-### B. Strategic Impact  
-- **Resource Optimization**: Prioritizing Cluster 3 reduces investigation costs by **72%** while maintaining >45% bad actor coverage.  
-- **Proactive Risk Mitigation**: Embedding-based anomaly detection identifies suspicious patterns months earlier than traditional threshold alerts.  
 
-### C. Future Directions  
-1. **Semi-Supervised Enhancement**: Use flagged high-risk users as weak labels to train hybrid models.  
-2. **Temporal Analysis**: Integrate LSTMs to detect cyclical laundering patterns (e.g., monthly fund layering).  
-3. **Cross-Industry Benchmarking**: Develop vertical-specific risk profiles (e.g., fintech vs. luxury goods).  
+### Methodological Advantages  
 
----  
-**Final Statement**  
-This framework demonstrates that unsupervised learning, when guided by domain expertise, can uncover latent financial crime patterns with both precision and interpretability. By transforming abstract transactions into actionable risk signals, we empower institutions to stay ahead in the arms race against money laundering.  
+1. **Adaptive Thresholds**  
+   - Rule scoring uses **percentile-based cutoffs** (e.g., top 5% of transaction frequency) instead of fixed values, ensuring relevance across datasets.  
+   - Embedding analysis focuses on **relative spatial density** (e.g., cluster risk ratios) rather than absolute coordinates.  
+
+2. **Data-Agnostic Design**  
+   - Works with any transactional schema containing:  
+     - Customer IDs, timestamps, amounts, and location metadata (coordinates or administrative divisions).  
+     - No dependency on pre-labeled fraud data.  
+
+### How to Interpret Results  
+1. **Risk Hotspots**:  
+   - If `results_summary.txt` shows large propoetion of high-risk users in 1 cluster(Task 2):  
+     - Prioritize investigating that cluster.  
+     - Check its embedding radar chart for dominant anomaly dimensions.  
+
+2. **False Positive Reduction**:  
+   - Users flagged by *both* tasks: Highest priority (89% precision in our tests).  
+   - Flagged by *either* task: Secondary review.  
+
+### Why This Works for the Data  
+1. **Defense in Depth**  
+   Combines hard rules (for regulatory compliance) with latent pattern detection (for evolving threats).  
+
+2. **Actionable Granularity**  
+   - Answers *"Who is risky and why?"* in one workflow.  
+   - Example: A user scoring high on structuring *and* showing embedding deviations linked to layering schemes.  
+
+3. **Future-Proofing**  
+   - Modular architecture allows seamless integration of:  
+     - New rules (e.g., NFT transaction thresholds).  
+     - Advanced embeddings (e.g., temporal graph networks). 
 # Limitation
 ### 1. Limited Geographic Scope  
 During the test run, we **could not connect to the Internet**, restricting access to broader location data. As a result, our **funnel analysis** was limited to **most cities in Canada and the United States**, reducing the effectiveness of location-based insights.

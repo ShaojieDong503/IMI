@@ -245,11 +245,26 @@ fig.write_image(img2_output_path)
 
 
 
+# Create the output summary
+output = [
+    "=== Task 1 Cluster Distribution for Bad Actors ===",
+    str(df_task1.loc[df_task1["bad_actor"]]['Cluster_2'].value_counts()),
+    "\n=== Overall Cluster Distribution (Task 1) ===",
+    str(df_task1['Cluster_2'].value_counts()),
+    "\n=== Final Cluster Distribution for Bad Actors ===",
+    str(df_task1.loc[df_task1["bad_actor"]]['cluster'].value_counts()),
+    "\n=== Overall Final Cluster Distribution ===",
+    str(df_task1['cluster'].value_counts()),
+    "\n=== Bad Actor Distribution ===",
+    str(df_task1['bad_actor'].value_counts())
+]
 
+# save the path
+task2_output_path_2 = os.path.join(output_image, 'reults_summary.txt')
 
-
-
-
+# write the output to a file
+with open(task2_output_path_2, 'w') as f:
+    f.write("\n".join(output))
 
 
 
