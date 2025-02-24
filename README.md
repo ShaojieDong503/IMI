@@ -8,6 +8,7 @@
 4. [Task 1: Unsupervised Approach on Money Landuary](#task1)
 5. [Task 2: Customer Foundation Model](#task2)
 7. [Conclusion](#conclusion)
+8. [Limitation](#limitation)
 # Introduction
 This project addresses the challenge of detecting potential money laundering activities in financial transaction data, where labeled ground truth ("bad actors") is unavailable. By combining domain-informed rule-based risk scoring with unsupervised machine learning, we developed a two-stage framework to:  
 1. **Identify high-risk customers** through behavioral red flags and cluster-based anomaly detection.  
@@ -370,6 +371,7 @@ We identify the top two clusters that contain the highest concentration of high-
 
   - **Customers Identified by Both Tasks**:  
     - Look under **`Task 2: High-Risk Customers in Top 2 Clusters`**.  
+    - **Top 2 clusters** are the two clusters which contains most high-scoring customers.
     - These customers are **concentrated in the key clusters from Task 2**, meaning they exhibit **similar transaction patterns and characteristics**.  
     - They have a **higher likelihood** of being **actual bad actors** compared to other customers.  
 
@@ -403,3 +405,6 @@ The **model runtime was capped at 2 hours**, requiring us to **reduce model comp
 
 ### 3. Variability in Embedding Consistency  
 Embeddings generated for different datasets are **not guaranteed to be identical** across runs. This is expected, as **embeddings are inherently data-dependent**, meaning variations in input data can lead to differences in the learned representation space.
+
+## Notes
+We have updated our code to implement more features. So the output file is different (number of clusters, customer embeddings) from our presentation we have recorded before the update. The work flow and findings are stay the same. We are still targeting the customers which are flagged by two tasks. (High scoring in task 1, and in the top 2 clusters (clusters which contains the most high-scoring customers))

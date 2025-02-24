@@ -64,7 +64,7 @@ feature_final = ['total_debit_amount_cad', 'transaction_frequency',
        'avg_transaction_interval_day', 'mode_transaction_interval_day',
        'avg_credit_transaction_amount', 
        'avg_debit_transaction_amount', 'structuring_points_x', 
-       'funnel_points','structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
+       'funnel_points', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
 
 correlation_matrix = df[feature_final].corr()
 
