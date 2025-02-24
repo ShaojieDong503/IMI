@@ -144,8 +144,79 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 
 # EDA
 ## Data Overview
+### Business Information - KYC
+
+| **Field Name**      | **Description**                                                                 |
+|---------------------|---------------------------------------------------------------------------------|
+| `country`           | The country where the business is located.                                      |
+| `province`          | The province or state where the business operates (if applicable).             |
+| `city`              | The city where the business is registered or operates.                         |
+| `industry_code`     | A standardized code representing the industry in which the business operates (e.g., NAICS, SIC). |
+| `employee_count`    | The number of employees working in the business.                               |
+| `sales`             | The total sales revenue of the business, likely in a specific currency.        |
+| `established_date`  | The date when the business was officially founded or incorporated.             |
+| `onboard_date`      | The date when the business was onboarded into the system (e.g., for banking, compliance, or KYC verification). |
+
+### Transaction Information
+
+| **Field Name**      | **Description**                                                                 |
+|---------------------|---------------------------------------------------------------------------------|
+| `customer_id`       | A unique identifier for each customer who made a transaction.                  |
+| `amount_cad`        | The transaction amount in Canadian dollars (CAD).                              |
+| `debit_credit`      | Indicates whether the transaction is a debit (money spent) or credit (money received). |
+| `cash_indicator`    | Specifies whether the transaction was made using cash or another payment method (e.g., card, digital payment). |
+| `country`           | The country where the transaction took place.                                  |
+| `province`          | The province (if applicable) where the transaction occurred.                   |
+| `city`              | The city where the transaction was made.                                       |
+| `transaction_date`  | The date when the transaction occurred.                                        |
+| `transaction_time`  | The time at which the transaction was processed.                               |
+| `merchant_category` | The type of merchant or business where the transaction took place (e.g., groceries, restaurants, retail). |
+| `ecommerce_ind`     | A binary indicator (likely yes/no or 1/0) specifying whether the transaction was an e-commerce purchase (online) or an in-person transaction. |
 ## Data Cleaning
+We keep all the data points and make missing fields particularly geographical ones like city, province, and country to *unknown* instead of NaN
 ## Feature Engineering
+### Transaction Data Processing
+### 1. **Convert `transaction_date` to `datetime` and Split into Year, Month, and Day**
+   - `transaction_date` will be converted into a `datetime` object.
+   - Extract `year`, `month`, and `day` from the `transaction_date` field to create separate columns for each.
+
+### 2. **Calculate Transaction Intervals**
+   - Calculate the time intervals between consecutive transactions for the same customer and the same transaction type.
+   - Compute the overall transaction intervals (including all transaction types) for each customer.
+   
+### 3. **Standardize `debit_credit` Values**
+   - Unify the `debit_credit` values by converting `C/D` to `credit/debit` for consistency.
+   - Replace `true/false` values in relevant columns with `1/0` for binary representation.
+
+### 4. **Find Maximum and Average Transaction Amounts**
+   - **Maximum Credit Transaction Amount:** Find the maximum credit transaction amount for each customer across all transactions.
+   - **Maximum Debit Transaction Amount:** Find the maximum debit transaction amount for each customer across all transactions.
+   - **Average Credit Transaction Amount:** Calculate the average credit transaction amount for each customer across all transactions.
+   - **Average Debit Transaction Amount:** Calculate the average debit transaction amount for each customer across all transactions.
+
+### 5. **Calculate Total Credit and Debit Amounts**
+   - **`total_credit_amount_cad`**: Sum of all credit transaction amounts (in CAD) for each customer.
+   - **`total_debit_amount_cad`**: Sum of all debit transaction amounts (in CAD) for each customer.
+
+### 6. **Transaction Frequency and Interval Analysis**
+   - **Number of Credit Transactions (`#_credit`)**: Count of credit transactions for each customer.
+   - **Number of Debit Transactions (`#_debit`)**: Count of debit transactions for each customer.
+   - **Transaction Frequency (`transaction_freq`)**: Total number of transactions for each customer.
+   - **Average Transaction Interval in Days (`avg_transaction_interval_day`)**: Calculate the average interval (in days) between each transaction for each customer.
+   - **Mode Transaction Interval in Days (`mode_transaction_interval_day`)**: Identify the most common interval (in days) between transactions for each customer.
+   - **Active Period of Time for a Customer (`date_range`)**: Calculate the active time period from the earliest to the latest transaction date for each customer.
+
+### 7. **Mode of Transaction Type**
+   - **Mode Transaction Type**: Identify the most frequent transaction type for each customer (e.g., debit or credit).
+   - Use a **Label Encoder** to encode transaction types for numerical processing.
+
+### 8. **Calculate the Ratios of E-commerce and Cash Transactions**
+   - **E-commerce Transaction Ratio**: Calculate the ratio of e-commerce transactions to the total number of transactions for each customer.
+   - **Cash Transaction Ratio**: Calculate the ratio of cash transactions to the total number of transactions for each customer.
+   - Fill missing values with `0` to handle missing data in these calculations.
+
+### 9. **Handle Missing or Special Values**
+   - Fill `n/a` values with `-1` because the first-day interval could be `-1`, and filling with the mean might result in `NaN`. Therefore, missing or special values will be replaced with `-1`.
 # Task1
 ## The Scoring System
 **Rule-Based Detection of Suspicious Transaction Patterns**  
