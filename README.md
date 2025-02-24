@@ -132,7 +132,7 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 | **File Name**            | **Description** |
 |--------------------------|----------------|
 | `additional.csv`    | Merges **Task 1 results with Task 2 clustering assignments** for deeper analysis. |
-|  `results_summary.txt`  | All cluster results from Task 1 and Task 2. |
+|  `results_summary.txt`  | All cluster results and lists of potential bad actors that we identified from Task 1 and Task 2. |
 |  `Correlation.png`  | The correlation between all the features. |
 |  `cash_ratio.png`  | The visulization for cash ratio across all clusters. |
 |  `Cluster_comparison_1.png`  | The visulization to compare different socres across all clusters. |
@@ -268,12 +268,13 @@ Funnel behavior involves rapid cross-location transactions within short timefram
 
 ---
 
-### C. KYC Completeness Scoring  
+### C. KYC Completeness Scoring
+#### **Definition** 
+Missing infomation in KYC table can indicate the customer is trying to hide it's true identity.  
 #### **Rules**  
 | Missing Field Type          | Points per Missing Field |  
 |-----------------------------|--------------------------|  
-| **Critical** (Industry code, Ownership) | 2                        |  
-| **Secondary** (Employee count, Sales) | 1                        |  
+| **Every missing Information** (Industry code, location,sales) | 1                       |  
 | **Max Possible**            | 5                        |  
 
 ---
@@ -328,13 +329,13 @@ The goal is to create embedding that act like locations in real life. Speaking w
 ### Specific Input/Output Format
 In our SCARF model, it takes engineered client records and risk scores based on their transaction history as input. The output is a 6-dimensional embedding that represents each client’s position in the feature space. The distance between two users' locations reflects how similar their transaction patterns are.
 ## Summary
-For Task 2 output, please refer to the **additional.csv** where it's containing the output from Task1 and the clustering results from Task 2. Then you can refer to **reults_summary.txt** to find the customer and bad actors distribution for both task. 
+To understand Task 2 outputs, please refer to the **additional.csv** where it's containing the output from Task1 and the clustering results from Task 2. Then you can refer to **reults_summary.txt** to find the customer and bad actors distribution for both task. 
 - *Task 1 Clusters*: Look under `Task 1 Cluster Distribution for Bad Actors`.
 - *Task 2 Clusters*: See `Final Cluster Distribution for Bad Actors`.  
 
 **Visual Analysis**: Use radar charts (e.g., `embedding_radar.png`) to compare embedding distributions of high-risk clusters.
 
-We identify the top two clusters that contain the highest concentration of high-scoring customers as our target clusters. Customers within these clusters are more likely to be actual bad actors compared to both other high-scoring customers and the rest of the customer base.
+We identify the top **two** clusters that contain the highest concentration of high-scoring customers as our target clusters. Customers within these clusters are more likely to be actual bad actors compared to both other high-scoring customers and the rest of the customer base.
 
 # Conclusion
 
@@ -406,5 +407,27 @@ The **model runtime was capped at 2 hours**, requiring us to **reduce model comp
 ### 3. Variability in Embedding Consistency  
 Embeddings generated for different datasets are **not guaranteed to be identical** across runs. This is expected, as **embeddings are inherently data-dependent**, meaning variations in input data can lead to differences in the learned representation space.
 
-## Notes
-We have updated our code to implement more features. So the output file is different (number of clusters, customer embeddings) from our presentation we have recorded before the update. The work flow and findings are stay the same. We are still targeting the customers which are flagged by two tasks. (High scoring in task 1, and in the top 2 clusters (clusters which contains the most high-scoring customers))
+
+## Notes  (Reproducing Outputs from our presentation)
+
+We have updated our code to **incorporate additional features** after recording our presentation and we are not able to record a new presentation due to time constraint. As a result, the **output files** (including the **number of clusters** and **customer embeddings**) differ from those in our recorded presentation for the training data.  
+
+However, the **overall workflow and key findings remain unchanged**—we continue to focus on customers flagged by **both tasks**:  
+- **High-scoring customers in Task 1**  
+- **Customers in the top 2 clusters** (i.e., clusters containing the most high-scoring customers) from Task 2  
+
+### **Key Differences Between the Presentation and Updated Version**  
+
+1. **Increase in High-Scoring Customers**  
+   - **Presentation Version**: Identified **33** high-scoring customers in the training dataset.  
+   - **Updated Version**: Now detects **68** high-scoring customers.  
+
+2. **Customers Targeted in Task 2**  
+   - **Presentation Version**: All **33** flagged customers were identified in **Task 2**, with **21 requiring further investigation**.  
+   - **Updated Version**: Now, **34 out of 68** high-scoring customers are flagged in **Task 2**.  
+
+3. **Detailed Customer Identifications**  
+   - The updated **customer IDs** and results can be found in **`results_summary.txt`**.  
+
+   We included both outputs from the old version (the one we use for presentation) and the latest version.
+   Please find the presentation outputs in the **Old_ouput_Presentation** folder and the latest one in **output** folder for detailed comparison.
