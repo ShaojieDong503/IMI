@@ -333,6 +333,8 @@ For Task 2 output, please refer to the **additional.csv** where it's containing 
 
 **Visual Analysis**: Use radar charts (e.g., `embedding_radar.png`) to compare embedding distributions of high-risk clusters.
 
+We identify the top two clusters that contain the highest concentration of high-scoring customers as our target clusters. Customers within these clusters are more likely to be actual bad actors compared to both other high-scoring customers and the rest of the customer base.
+
 # Conclusion
 
 ### Core Validation Logic
@@ -359,14 +361,23 @@ For Task 2 output, please refer to the **additional.csv** where it's containing 
      - No dependency on pre-labeled fraud data.  
 
 ### How to Interpret Results  
-1. **Risk Hotspots**:  
-   - If `results_summary.txt` shows large propoetion of high-risk users in 1 cluster(Task 2):  
-     - Prioritize investigating that cluster.  
-     - Check its embedding radar chart for dominant anomaly dimensions.  
 
-2. **False Positive Reduction**:  
-   - Users flagged by *both* tasks: Highest priority (89% precision in our tests).  
-   - Flagged by *either* task: Secondary review.  
+- If `results_summary.txt` indicates a **large proportion of high-risk users** in specific clusters from **Task 2**, follow these steps:  
+
+  - **All High-Scoring Customers**:  
+    - Refer to **`Task 1: All High-Risk Customers`**.  
+    - These customers require **closer attention**, as they have been flagged as **potential bad actors** based on their transaction patterns.  
+
+  - **Customers Identified by Both Tasks**:  
+    - Look under **`Task 2: High-Risk Customers in Top 2 Clusters`**.  
+    - These customers are **concentrated in the key clusters from Task 2**, meaning they exhibit **similar transaction patterns and characteristics**.  
+    - They have a **higher likelihood** of being **actual bad actors** compared to other customers.  
+
+  - **Investigation Priorities**:  
+    - **Prioritize** analyzing clusters identified in **Task 2** to uncover risk patterns.  
+    - Review the **embedding radar charts** to identify **dominant anomaly dimensions** and gain deeper insights from embeddings.  
+
+
 
 ### Why This Works for the Data  
 1. **Defense in Depth**  
@@ -380,6 +391,9 @@ For Task 2 output, please refer to the **additional.csv** where it's containing 
    - Modular architecture allows seamless integration of:  
      - New rules (e.g., NFT transaction thresholds).  
      - Advanced embeddings (e.g., temporal graph networks). 
+
+
+
 # Limitation
 ### 1. Limited Geographic Scope  
 During the test run, we **could not connect to the Internet**, restricting access to broader location data. As a result, our **funnel analysis** was limited to **most cities in Canada and the United States**, reducing the effectiveness of location-based insights.

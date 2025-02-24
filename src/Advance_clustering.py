@@ -243,20 +243,40 @@ fig.show()
 img2_output_path = os.path.join(output_image, 'ecommerce_ratio.png')
 fig.write_image(img2_output_path) 
 
-
-
 # Create the output summary
+task1_high_risk = df_task1[df_task1["bad_actor"]][["customer_id", "cluster"]]
+task1_ids = task1_high_risk["customer_id"].tolist()
+task2_cluster_counts = df_task1[df_task1["bad_actor"]]["Cluster_2"].value_counts()
+top_clusters_task2 = task2_cluster_counts.head(2).index.tolist() 
+
+
+task2_high_risk_ids = []
+for cluster in top_clusters_task2:
+    ids = df_task1[
+        (df_task1["Cluster_2"] == cluster) & 
+        (df_task1["bad_actor"])
+    ]["customer_id"].tolist()
+    task2_high_risk_ids.extend(ids)
+
+
 output = [
-    "=== Task 1 Cluster Distribution for Bad Actors ===",
-    str(df_task1.loc[df_task1["bad_actor"]]['Cluster_2'].value_counts()),
-    "\n=== Overall Cluster Distribution (Task 1) ===",
-    str(df_task1['Cluster_2'].value_counts()),
-    "\n=== Final Cluster Distribution for Bad Actors ===",
+    "=== Task 1: Total Bad Actor Distribution ===",
+    str(df_task1['bad_actor'].value_counts()),
+    "\n=== Task 1 Cluster Distribution for Bad Actors ===",
     str(df_task1.loc[df_task1["bad_actor"]]['cluster'].value_counts()),
-    "\n=== Overall Final Cluster Distribution ===",
+    "\n=== Overall Cluster Distribution (Task 1) ===",
     str(df_task1['cluster'].value_counts()),
-    "\n=== Bad Actor Distribution ===",
-    str(df_task1['bad_actor'].value_counts())
+    "\n=== Cluster Distribution for Bad Actors (Task 2) ===",
+    str(df_task1.loc[df_task1["bad_actor"]]['Cluster_2'].value_counts()),
+    "\n=== Overall Cluster Distribution (Task2) ===",
+    str(df_task1['Cluster_2'].value_counts()),
+    "\n=== Task 1: All High-Risk Customers ===",
+    f"Total: {len(task1_ids)} customers",
+    "\n".join(task1_ids),
+    "\n\n=== Task 2: High-Risk Customers in Top 2 Clusters ===",
+    f"Target Clusters: {top_clusters_task2}",
+    f"Total: {len(task2_high_risk_ids)} customers",
+    "\n".join(task2_high_risk_ids)
 ]
 
 # save the path
