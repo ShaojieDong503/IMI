@@ -18,7 +18,7 @@ def majority(series):
     return series.mode()[0] if not series.mode().empty else None
 
 
-def get_eda(input_dir, interim_dir):
+def get_eda(input_dir, interim_dir, resources_dir):
     # Read all the data
     wire_path = input_dir + 'wire.csv'
     emt_path = input_dir + 'emt.csv'
@@ -26,6 +26,7 @@ def get_eda(input_dir, interim_dir):
     cheque_path = input_dir + 'cheque.csv'
     card_path = input_dir + 'card.csv'
     abm_path = input_dir + 'abm.csv'
+    mcc_path = resources_dir + 'mcc_unique_codes.csv'
 
     df_abm = pd.read_csv(abm_path)
     df_wire = pd.read_csv(wire_path)
@@ -33,6 +34,7 @@ def get_eda(input_dir, interim_dir):
     df_eft = pd.read_csv(eft_path)
     df_cheque = pd.read_csv(cheque_path)
     df_card = pd.read_csv(card_path)
+    df_mcc = pd.read_csv(mcc_path)
 
     scaler = StandardScaler()
 
@@ -141,6 +143,24 @@ def get_eda(input_dir, interim_dir):
     df_card['amount_cad_normalized'] = scaler.fit_transform(df_card[['amount_cad']])
     print(df_card)
 
+    df_card["merchant_category"] = df_card["merchant_category"].astype(str)
+    df_mcc["Code"] = df_mcc["Code"].astype(str)
+    merged_df_card = df_card.merge(df_mcc, left_on="merchant_category", right_on="Code", how="left")
+
+    # Keep only relevant columns
+    df_filtered = merged_df_card[["customer_id", "MCC Group1"]].dropna(
+        subset=["MCC Group1"])  # Drop rows where MCC Group1 is missing
+
+    # Count occurrences of each MCC Group1 per customer
+    most_common_group = df_filtered.groupby(["customer_id", "MCC Group1"]).size().reset_index(name="count")
+
+    # Find the most common MCC Group1 for each customer
+    most_common_group = most_common_group.loc[most_common_group.groupby("customer_id")["count"].idxmax()]
+
+    # Ensure all customers appear in the final output
+    all_customers = df_card[["customer_id"]].drop_duplicates()
+    final_mcc = all_customers.merge(most_common_group, on="customer_id", how="left")
+
     # true flase to 1 0
     df_abm['cash_indicator'] = df_abm['cash_indicator'].astype(int)
 
@@ -199,6 +219,29 @@ def get_eda(input_dir, interim_dir):
     df_combined['transaction_interval_days'] = df_combined.groupby('customer_id')['transaction_date'].diff().dt.days
     df_combined['transaction_interval_days'] = df_combined['transaction_interval_days'].fillna(-1).astype(int)
     print(df_combined)
+
+    # First, group by 'customer_id' and 'transaction_type' and count the occurrences
+    transaction_counts = df_combined.groupby(['customer_id', 'transaction_type']).size().reset_index(
+        name='transaction_count')
+
+    # Pivot the table to have customer_id as rows and transaction_type as columns
+    transaction_counts_pivot = transaction_counts.pivot_table(
+        index='customer_id',
+        columns='transaction_type',
+        values='transaction_count',
+        aggfunc='sum',
+        fill_value=0
+    )
+
+    # Ensure there are exactly 7 columns (transaction types)
+    # If there are less than 7 transaction types, we add extra columns with 0s
+    required_columns = [
+        'Cheque', 'Wire', 'Card', 'EFT', 'EMT', 'ABM'
+    ]
+
+    # Reindex to ensure there are 7 columns (adding 0s if needed)
+    transaction_counts_pivot = transaction_counts_pivot.reindex(columns=required_columns, fill_value=0)
+    print(transaction_counts_pivot)
 
     df_credit = df_combined[df_combined['debit_credit'] == 'credit']
     df_debit = df_combined[df_combined['debit_credit'] == 'debit']
@@ -289,6 +332,18 @@ def get_eda(input_dir, interim_dir):
     merged_df_final = merged_df_final.merge(abm_ratio, on="customer_id", how="left")
     merged_df_final["ecommerce_ratio"] = merged_df_final["ecommerce_ratio"].fillna(0)
     merged_df_final["cash_ratio"] = merged_df_final["cash_ratio"].fillna(0)
+
+    merged_df_final = pd.merge(merged_df_final, transaction_counts_pivot, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    merged_df_final['online_ratio'] = (merged_df_final['Card'] * merged_df_final['ecommerce_ratio'] + merged_df_final[
+        'Wire'] + merged_df_final['EFT'] + merged_df_final['EMT']) / (
+                                                  merged_df_final['debit_count'] + merged_df_final['credit_count'])
+    merged_df_final.drop(columns=['Cheque', 'Wire', 'Card', 'EFT', 'EMT', 'ABM'], inplace=True)
+    print(merged_df_final)
+
+    merged_df_final = pd.merge(merged_df_final, final_mcc, on='customer_id', how='inner')
+    print(merged_df_final)
 
     # output the data file
     general_table_path = interim_dir + "general_table.csv"
