@@ -45,7 +45,7 @@ plt.title('Correlation Matrix Heatmap', fontsize=16)
 plt.show()
 
 # Drop features with high correlation
-def remove_high_correlation(df, threshold=0.6):
+def remove_high_correlation(df, threshold=0.85):
     corr_matrix = df.corr().abs()
     drop_cols = set()
 
@@ -75,7 +75,7 @@ df_scaled = pd.DataFrame(X_scaled, columns=X_filtered.columns)
 
 # Build K-means Clustering using Elbow Method and Silhouette Method
 silhouette_scores = []
-k_range = range(2, 11)
+k_range = range(2, 6)
 
 
 inertia = []
@@ -105,7 +105,10 @@ plt.ylabel('Silhouette Score')
 plt.title('Silhouette Method for Optimal Clusters')
 
 plt.tight_layout()
-plt.show()
+output_path = os.path.join(output_image, 'Elbow_and_Silhouette.png')  
+plt.savefig(output_path, dpi=300, bbox_inches='tight')  
+plt.close()
+
 
 # Use the Best K for the model
 chosen_k = k_range[np.argmax(silhouette_scores)]
@@ -270,10 +273,10 @@ output = [
     str(df_task1.loc[df_task1["bad_actor"]]['Cluster_2'].value_counts()),
     "\n=== Overall Cluster Distribution (Task2) ===",
     str(df_task1['Cluster_2'].value_counts()),
-    "\n=== Task 1: All High-Risk Customers ===",
+    "\n=== Task 1: All Mid to High Risk Customers ===",
     f"Total: {len(task1_ids)} customers",
     "\n".join(task1_ids),
-    "\n\n=== Task 2: High-Risk Customers in Top 2 Clusters ===",
+    "\n\n=== Task 2: High-Risk Customers ===",
     f"Target Clusters: {top_clusters_task2}",
     f"Total: {len(task2_high_risk_ids)} customers",
     "\n".join(task2_high_risk_ids)
@@ -295,6 +298,25 @@ print(df_task1['Cluster_2'].value_counts())
 print(df_task1.loc[(df_task1["bad_actor"] == True)]['cluster'].value_counts())
 print(df_task1['cluster'].value_counts())
 print(df_task1['bad_actor'].value_counts())
+
+
+df_task1['high_risk_level'] = 0
+df_task1['mid_risk_level'] = 0
+df_task1['low_risk_level'] = 0
+
+# mark high risk
+assert all(cid in task1_ids for cid in task2_high_risk_ids), "ERROR: 存在不属于task1_ids的task2_high_risk_ids"
+df_task1.loc[df_task1['customer_id'].isin(task2_high_risk_ids), 'high_risk_level'] = 1
+
+# mark mid risk
+mid_risk_ids = list(set(task1_ids) - set(task2_high_risk_ids))
+df_task1.loc[df_task1['customer_id'].isin(mid_risk_ids), 'mid_risk_level'] = 1
+
+# mark low risk
+df_task1['low_risk_level'] = (
+    (df_task1['high_risk_level'] == 0) & 
+    (df_task1['mid_risk_level'] == 0)
+).astype(int)
 
 #Save the additional output
 task2_output_path_2 = os.path.join(output_image, 'addtional.csv')

@@ -106,7 +106,7 @@ data = df
 data = data[['total_debit_amount_cad', 'transaction_frequency',
        'avg_transaction_interval_day', 'mode_transaction_interval_day',
        'avg_credit_transaction_amount', 
-       'avg_debit_transaction_amount', 'structuring_points_x', 
+       'avg_debit_transaction_amount', 
        'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio' ]]
 
 # preprocess
