@@ -407,6 +407,9 @@ The **model runtime was capped at 2 hours**, requiring us to **reduce model comp
 ### 3. Variability in Embedding Consistency  
 Embeddings generated for different datasets are **not guaranteed to be identical** across runs. This is expected, as **embeddings are inherently data-dependent**, meaning variations in input data can lead to differences in the learned representation space.
 
+# Next Steps
+Time series prediction scoring
+
 
 ## Notes  (Reproducing Outputs from our presentation)
 
