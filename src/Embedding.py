@@ -123,8 +123,8 @@ train_ds = SCARFDataset(data_scaled.to_numpy(),
 train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
 
 # ***Hyperparams***
-batch_size = 256 # larger takes more time
-epochs = 600 # as large as possible
+batch_size = 512 # larger takes more time
+epochs = 700 # as large as possible
 output_dimension = 6 # output embedding dimension
 # ***Hyperparams***
 

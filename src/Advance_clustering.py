@@ -22,6 +22,7 @@ from pathlib import Path
 input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
 output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
 output_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2')
+output_cus_image = os.getenv('OUTPUT_DIR', '/mnt/output/task2/high_risk_customers')
 task1_output_dir = os.getenv(output_dir, '/mnt/output/task1')
 interim_dir = os.path.join(output_dir, 'interim')
 task2_output_path = os.path.join(interim_dir, 'customer_embeddings.csv')
@@ -31,6 +32,7 @@ task1_output_path= os.path.join(task1_output_dir, 'task1.csv')
 def ensure_dir(path):
     Path(path).mkdir(parents=True, exist_ok=True)
 ensure_dir(output_image)
+ensure_dir(output_cus_image)
 
 df = pd.read_csv(task2_output_path)
 df.head()
@@ -290,8 +292,6 @@ with open(task2_output_path_2, 'w') as f:
     f.write("\n".join(output))
 
 
-
-
 #Print out which cluster has the most bad actors
 print(df_task1.loc[(df_task1["bad_actor"] == True)]['Cluster_2'].value_counts())
 print(df_task1['Cluster_2'].value_counts())
@@ -321,3 +321,77 @@ df_task1['low_risk_level'] = (
 #Save the additional output
 task2_output_path_2 = os.path.join(output_image, 'addtional.csv')
 df_task1.to_csv(task2_output_path_2,index=False)
+
+
+# Save transaction timeseries plot for high risk customers
+table_names = ['new_wire', 'new_emt', 'new_eft', 
+              'new_cheque', 'new_card', 'new_abm']
+
+def load_clean_data():
+    """Load all cleaned data files"""
+    data_dict = {}
+    
+    for table in table_names:
+        file_path = os.path.join(interim_dir, f"{table}.csv")
+        try:
+            df = pd.read_csv(file_path)
+            df['transaction_date'] = pd.to_datetime(df['transaction_date'])
+            df['amount_cad'] = pd.to_numeric(df['amount_cad'])
+            data_dict[table] = df
+        except FileNotFoundError:
+            print(f"File not found {file_path}")
+    
+    return data_dict
+
+
+def plot_customer_timeseries(customer_id, all_data):
+    """Generate a transaction timeline plot for a given customer"""
+    # Gather all transactions for the customer
+    all_trans = []
+    
+    for table_name, df in all_data.items():
+        customer_trans = df[df['customer_id'] == customer_id].copy()
+        
+        if not customer_trans.empty:
+            customer_trans['transaction_type'] = table_name.replace('new_', '').upper()
+            all_trans.append(customer_trans)
+    
+
+    combined = pd.concat(all_trans).sort_values('transaction_date')
+    
+    # Seperate credit and debit transactions
+    df_credit = combined[combined['debit_credit'] == 1]  
+    df_debit = combined[combined['debit_credit'] == 0]   
+
+    # Create a plot cavans
+    plt.figure(figsize=(12, 6))
+    
+    # Credit plot (blue)
+    if not df_credit.empty:
+        plt.scatter(df_credit['transaction_date'], df_credit['amount_cad'],
+                   c='blue', label='Credit', alpha=0.7)
+    
+    # Debit plot (red)
+    if not df_debit.empty:
+        plt.scatter(df_debit['transaction_date'], df_debit['amount_cad'], 
+                   c='red', label='Debit', alpha=0.7)
+    
+    # Make plot pretty
+    plt.title(f'Transaction Timeline - {customer_id}')
+    plt.xlabel('Date')
+    plt.ylabel('Amount (CAD)')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # format the date
+    plt.gcf().autofmt_xdate()
+    
+    # Save the plot
+    output_path = os.path.join(output_cus_image, f"{customer_id}.png")
+    plt.savefig(output_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+# Run all the functions to generate the plots
+clean_data = load_clean_data()
+for customer_id in task1_ids:
+    plot_customer_timeseries(customer_id, clean_data)
