@@ -127,7 +127,7 @@ batch_size = 512 # larger takes more time
 epochs = 700 # as large as possible
 output_dimension = 6 # output embedding dimension
 # ***Hyperparams***
-
+fix_seed(42)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 

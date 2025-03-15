@@ -305,7 +305,7 @@ df_task1['mid_risk_level'] = 0
 df_task1['low_risk_level'] = 0
 
 # mark high risk
-assert all(cid in task1_ids for cid in task2_high_risk_ids), "ERROR: 存在不属于task1_ids的task2_high_risk_ids"
+assert all(cid in task1_ids for cid in task2_high_risk_ids), "ERROR: There is task1_ids not in task2_high_risk_ids"
 df_task1.loc[df_task1['customer_id'].isin(task2_high_risk_ids), 'high_risk_level'] = 1
 
 # mark mid risk
@@ -318,80 +318,58 @@ df_task1['low_risk_level'] = (
     (df_task1['mid_risk_level'] == 0)
 ).astype(int)
 
+
 #Save the additional output
 task2_output_path_2 = os.path.join(output_image, 'addtional.csv')
 df_task1.to_csv(task2_output_path_2,index=False)
 
 
+
+
 # Save transaction timeseries plot for high risk customers
-table_names = ['new_wire', 'new_emt', 'new_eft', 
-              'new_cheque', 'new_card', 'new_abm']
+new_abm_table_path = os.path.join(interim_dir, 'new_abm.csv')
+new_card_table_path = os.path.join(interim_dir, 'new_card.csv')
+new_cheque_table_path = os.path.join(interim_dir, 'new_cheque.csv')
+new_eft_table_path = os.path.join(interim_dir, 'new_eft.csv')
+new_emt_table_path = os.path.join(interim_dir, 'new_emt.csv')
+new_wire_table_path = os.path.join(interim_dir, 'new_wire.csv')
+df_abm = pd.read_csv(new_abm_table_path)
+df_card = pd.read_csv(new_card_table_path)
+df_cheque = pd.read_csv(new_cheque_table_path)
+df_eft = pd.read_csv(new_eft_table_path)
+df_emt = pd.read_csv(new_emt_table_path)
+df_wire = pd.read_csv(new_wire_table_path)
 
-def load_clean_data():
-    """Load all cleaned data files"""
-    data_dict = {}
-    
+required_columns = [
+    'customer_id',
+    'amount_cad',
+    'debit_credit',
+    'transaction_date'
+]
+table_names = ['df_wire', 'df_emt', 'df_eft', 'df_cheque', 'df_card', 'df_abm']
+for cust_id in task1_ids:
+    all_transactions = []
     for table in table_names:
-        file_path = os.path.join(interim_dir, f"{table}.csv")
-        try:
-            df = pd.read_csv(file_path)
-            df['transaction_date'] = pd.to_datetime(df['transaction_date'])
-            df['amount_cad'] = pd.to_numeric(df['amount_cad'])
-            data_dict[table] = df
-        except FileNotFoundError:
-            print(f"File not found {file_path}")
-    
-    return data_dict
+        df = globals().get(table,pd.DataFrame())
+        if not df.empty:
+            filtered = df.loc[df['customer_id']==cust_id,required_columns].copy()
+            filtered['source_table'] = table
+            all_transactions.append(filtered)
+    combined = pd.concat(all_transactions,axis=0)
+    combined['transaction_date'] = pd.to_datetime(combined['transaction_date'])
+    combined = combined.sort_values('transaction_date').reset_index(drop=True)
+    df_credit = combined[combined['debit_credit']=='credit']
+    df_debit = combined[combined['debit_credit']=='debit']
 
-
-def plot_customer_timeseries(customer_id, all_data):
-    """Generate a transaction timeline plot for a given customer"""
-    # Gather all transactions for the customer
-    all_trans = []
-    
-    for table_name, df in all_data.items():
-        customer_trans = df[df['customer_id'] == customer_id].copy()
-        
-        if not customer_trans.empty:
-            customer_trans['transaction_type'] = table_name.replace('new_', '').upper()
-            all_trans.append(customer_trans)
-    
-
-    combined = pd.concat(all_trans).sort_values('transaction_date')
-    
-    # Seperate credit and debit transactions
-    df_credit = combined[combined['debit_credit'] == 1]  
-    df_debit = combined[combined['debit_credit'] == 0]   
-
-    # Create a plot cavans
-    plt.figure(figsize=(12, 6))
-    
-    # Credit plot (blue)
-    if not df_credit.empty:
-        plt.scatter(df_credit['transaction_date'], df_credit['amount_cad'],
-                   c='blue', label='Credit', alpha=0.7)
-    
-    # Debit plot (red)
-    if not df_debit.empty:
-        plt.scatter(df_debit['transaction_date'], df_debit['amount_cad'], 
-                   c='red', label='Debit', alpha=0.7)
-    
-    # Make plot pretty
-    plt.title(f'Transaction Timeline - {customer_id}')
+    plt.figure(figsize=(10, 6))
+    plt.plot(df_credit['transaction_date'], df_credit['amount_cad'], color='blue', label='Credit')
+    plt.plot(df_debit['transaction_date'], df_debit['amount_cad'], color='red', label='Debit')
+    plt.ticklabel_format(style='plain', axis='y')
+    # Customize labels and title
     plt.xlabel('Date')
-    plt.ylabel('Amount (CAD)')
+    plt.ylabel('Transaction Amount (CAD)')
+    plt.title(f'Transaction Time Series for Customer {cust_id}')
     plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    # format the date
-    plt.gcf().autofmt_xdate()
-    
-    # Save the plot
-    output_path = os.path.join(output_cus_image, f"{customer_id}.png")
-    plt.savefig(output_path, bbox_inches='tight', dpi=150)
+    output_path = os.path.join(output_cus_image, f"{cust_id}.png")
+    plt.savefig(output_path)
     plt.close()
-
-# Run all the functions to generate the plots
-clean_data = load_clean_data()
-for customer_id in task1_ids:
-    plot_customer_timeseries(customer_id, clean_data)
