@@ -350,9 +350,4 @@ def get_eda(input_dir, interim_dir, resources_dir):
     merged_df_final.to_csv(general_table_path, index=False)
     print("EDA done")
 
-# df_wire.to_csv("/content/drive/My Drive/IMI_Data/new_wire.csv", index=False)
-# df_emt.to_csv("/content/drive/My Drive/IMI_Data/new_emt.csv", index=False)
-# df_eft.to_csv("/content/drive/My Drive/IMI_Data/new_eft.csv", index=False)
-# df_cheque.to_csv("/content/drive/My Drive/IMI_Data/new_cheque.csv", index=False)
-# df_card.to_csv("/content/drive/My Drive/IMI_Data/new_card.csv", index=False)
-# df_abm.to_csv("/content/drive/My Drive/IMI_Data/new_abm.csv", index=False)
+
