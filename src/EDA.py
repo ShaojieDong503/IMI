@@ -7,307 +7,347 @@ Original file is located at
     https://colab.research.google.com/drive/1BkRPbTmFHjt6y1f5bLzH5b0DZA3CWiZ1
 """
 
-import os
-from pathlib import Path
+
 import pandas as pd
 
 from sklearn.preprocessing import StandardScaler
-import numpy as np
-from scipy.stats import mode
+from sklearn.preprocessing import LabelEncoder
 
-input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
-output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
-interim_dir = os.path.join(output_dir, 'interim')
-def ensure_dir(path):
-    Path(interim_dir).mkdir(parents=True, exist_ok=True)
-
-# Read all the data
-abm_path = os.path.join(input_dir, "abm.csv")
-card_path = os.path.join(input_dir, 'card.csv')
-cheque_path = os.path.join(input_dir, 'cheque.csv')
-eft_path = os.path.join(input_dir, 'eft.csv')
-emt_path = os.path.join(input_dir, 'emt.csv')
-wire_path = os.path.join(input_dir, 'wire.csv')
-
-df_abm = pd.read_csv(abm_path)
-df_wire = pd.read_csv(wire_path)
-df_emt = pd.read_csv(emt_path)
-df_eft = pd.read_csv(eft_path)
-df_cheque = pd.read_csv(cheque_path)
-df_card = pd.read_csv(card_path)
-
-scaler = StandardScaler()
-
-# 2. Convert `transaction_date` to datetime
-df_wire['transaction_date'] = pd.to_datetime(df_wire['transaction_date'])
-
-# 3. Extract year, month, and day into separate columns
-df_wire['year'] = df_wire['transaction_date'].dt.year
-df_wire['month'] = df_wire['transaction_date'].dt.month
-df_wire['day'] = df_wire['transaction_date'].dt.day
-
-# 3. Calculate transaction intervals for the same customer
-
-df_wire = df_wire.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_wire['transaction_interval_days'] = df_wire.groupby('customer_id')['transaction_date'].diff().dt.days
-df_wire['transaction_interval_days'] = df_wire['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_wire['amount_cad_normalized'] = scaler.fit_transform(df_wire[['amount_cad']])
-print(df_wire)
-
-#unify debit_credit
-df_emt['debit_credit'] = df_emt['debit_credit'].replace({'D': 'debit', 'C': 'credit'})
-
-# 2. Convert `transaction_date` to datetime
-df_emt['transaction_date'] = pd.to_datetime(df_emt['transaction_date'])
-
-# 3. Extract year, month, and day into separate columns
-df_emt['year'] = df_emt['transaction_date'].dt.year
-df_emt['month'] = df_emt['transaction_date'].dt.month
-df_emt['day'] = df_emt['transaction_date'].dt.day
-
-# 3. Calculate transaction intervals for the same customer
-
-df_emt = df_emt.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_emt['transaction_interval_days'] = df_emt.groupby('customer_id')['transaction_date'].diff().dt.days
-df_emt['transaction_interval_days'] = df_emt['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_emt['amount_cad_normalized'] = scaler.fit_transform(df_emt[['amount_cad']])
-print(df_emt)
-
-# 2. Convert `transaction_date` to datetime
-df_eft['transaction_date'] = pd.to_datetime(df_eft['transaction_date'])
-
-# 3. Extract year, month, and day into separate columns
-df_eft['year'] = df_eft['transaction_date'].dt.year
-df_eft['month'] = df_eft['transaction_date'].dt.month
-df_eft['day'] = df_eft['transaction_date'].dt.day
-
-# 3. Calculate transaction intervals for the same customer
-
-df_eft = df_eft.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_eft['transaction_interval_days'] = df_eft.groupby('customer_id')['transaction_date'].diff().dt.days
-df_eft['transaction_interval_days'] = df_eft['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_eft['amount_cad_normalized'] = scaler.fit_transform(df_eft[['amount_cad']])
-print(df_eft)
-
-# 2. Convert `transaction_date` to datetime
-df_cheque['transaction_date'] = pd.to_datetime(df_cheque['transaction_date'])
-
-# 3. Extract year, month, and day into separate columns
-df_cheque['year'] = df_cheque['transaction_date'].dt.year
-df_cheque['month'] = df_cheque['transaction_date'].dt.month
-df_cheque['day'] = df_cheque['transaction_date'].dt.day
-
-# 3. Calculate transaction intervals for the same customer
-
-df_cheque = df_cheque.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_cheque['transaction_interval_days'] = df_cheque.groupby('customer_id')['transaction_date'].diff().dt.days
-df_cheque['transaction_interval_days'] = df_cheque['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_cheque['amount_cad_normalized'] = scaler.fit_transform(df_cheque[['amount_cad']])
-print(df_cheque)
-
-#true flase to 1 0
-df_card['ecommerce_ind'] = df_card['ecommerce_ind'].astype(int)
-
-# Replace missing values in `country`, `province`, and `city` with "unknown"
-df_card[['country', 'province', 'city']] = df_card[['country', 'province', 'city']].fillna('unknown')
-
-# Convert `transaction_date` to datetime
-df_card['transaction_date'] = pd.to_datetime(df_card['transaction_date'])
-
-# Extract year, month, and day into separate columns
-df_card['year'] = df_card['transaction_date'].dt.year
-df_card['month'] = df_card['transaction_date'].dt.month
-df_card['day'] = df_card['transaction_date'].dt.day
-
-# Calculate transaction intervals for the same customer
-
-df_card = df_card.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_card['transaction_interval_days'] = df_card.groupby('customer_id')['transaction_date'].diff().dt.days
-df_card['transaction_interval_days'] = df_card['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_card['amount_cad_normalized'] = scaler.fit_transform(df_card[['amount_cad']])
-print(df_card)
-
-#true flase to 1 0
-df_abm['cash_indicator'] = df_abm['cash_indicator'].astype(int)
-
-# Replace missing values in `country`, `province`, and `city` with "unknown"
-df_abm[['country', 'province', 'city']] = df_abm[['country', 'province', 'city']].fillna('unknown')
-
-# Convert `transaction_date` to datetime
-df_abm['transaction_date'] = pd.to_datetime(df_abm['transaction_date'])
-
-# Extract year, month, and day into separate columns
-df_abm['year'] = df_abm['transaction_date'].dt.year
-df_abm['month'] = df_abm['transaction_date'].dt.month
-df_abm['day'] = df_abm['transaction_date'].dt.day
-
-# Calculate transaction intervals for the same customer
-
-df_abm = df_abm.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
-
-# Group by customer_id and calculate transaction intervals
-df_abm['transaction_interval_days'] = df_abm.groupby('customer_id')['transaction_date'].diff().dt.days
-df_abm['transaction_interval_days'] = df_abm['transaction_interval_days'].fillna(-1).astype(int)
-# Normalize/Standardize Numerical Values
-df_abm['amount_cad_normalized'] = scaler.fit_transform(df_abm[['amount_cad']])
-print(df_abm)
 
 def majority(series):
     return series.mode()[0] if not series.mode().empty else None
 
-# Add a transaction_type column
-df_wire['transaction_type'] = 'Wire'
-df_card['transaction_type'] = 'Card'
-df_abm['transaction_type'] = 'ABM'
-df_eft['transaction_type'] = 'EFT'
-df_emt['transaction_type'] = 'EMT'
-df_cheque['transaction_type'] = 'Cheque'
 
-# Select relevant columns
-df_card = df_card[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type','ecommerce_ind']]
-df_abm = df_abm[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type', 'cash_indicator']]
-df_wire = df_wire[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-df_eft = df_eft[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-df_emt = df_emt[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-df_cheque = df_cheque[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+def get_eda(input_dir, interim_dir, resources_dir):
+    # Read all the data
+    wire_path = input_dir + 'wire.csv'
+    emt_path = input_dir + 'emt.csv'
+    eft_path = input_dir + 'eft.csv'
+    cheque_path = input_dir + 'cheque.csv'
+    card_path = input_dir + 'card.csv'
+    abm_path = input_dir + 'abm.csv'
+    mcc_path = resources_dir + 'mcc_unique_codes.csv'
 
-# Combine all tables
-df_combined = pd.concat([df_card, df_abm, df_wire, df_eft, df_emt, df_cheque], ignore_index=True)
+    df_abm = pd.read_csv(abm_path)
+    df_wire = pd.read_csv(wire_path)
+    df_emt = pd.read_csv(emt_path)
+    df_eft = pd.read_csv(eft_path)
+    df_cheque = pd.read_csv(cheque_path)
+    df_card = pd.read_csv(card_path)
+    df_mcc = pd.read_csv(mcc_path)
 
-# Convert transaction_date to datetime for uniformity
-df_combined['transaction_date'] = pd.to_datetime(df_combined['transaction_date'])
+    scaler = StandardScaler()
 
-# Calculate transaction intervals for the same customer
+    # 2. Convert `transaction_date` to datetime
+    df_wire['transaction_date'] = pd.to_datetime(df_wire['transaction_date'])
 
-df_combined = df_combined.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
+    # 3. Extract year, month, and day into separate columns
+    df_wire['year'] = df_wire['transaction_date'].dt.year
+    df_wire['month'] = df_wire['transaction_date'].dt.month
+    df_wire['day'] = df_wire['transaction_date'].dt.day
 
-# Group by customer_id and calculate transaction intervals
-df_combined['transaction_interval_days'] = df_combined.groupby('customer_id')['transaction_date'].diff().dt.days
-df_combined['transaction_interval_days'] = df_combined['transaction_interval_days'].fillna(-1).astype(int)
-print(df_combined)
+    # 3. Calculate transaction intervals for the same customer
 
-df_credit = df_combined[df_combined['debit_credit'] == 'credit']
-df_debit = df_combined[df_combined['debit_credit'] == 'debit']
+    df_wire = df_wire.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
 
-# Find the maximum transaction amount for each customer
-max_credit_transactions_per_customer = df_credit.groupby('customer_id')['amount_cad'].max().reset_index()
+    # Group by customer_id and calculate transaction intervals
+    df_wire['transaction_interval_days'] = df_wire.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_wire['transaction_interval_days'] = df_wire['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_wire['amount_cad_normalized'] = scaler.fit_transform(df_wire[['amount_cad']])
+    print(df_wire)
 
-# Rename columns for clarity
-max_credit_transactions_per_customer.columns = ['customer_id', 'max_credit_transaction_amount']
+    # unify debit_credit
+    df_emt['debit_credit'] = df_emt['debit_credit'].replace({'D': 'debit', 'C': 'credit'})
 
-# Output the result
-print(max_credit_transactions_per_customer)
+    # 2. Convert `transaction_date` to datetime
+    df_emt['transaction_date'] = pd.to_datetime(df_emt['transaction_date'])
 
-max_debit_transactions_per_customer = df_debit.groupby('customer_id')['amount_cad'].max().reset_index()
-max_debit_transactions_per_customer.columns = ['customer_id', 'max_debit_transaction_amount']
-print(max_debit_transactions_per_customer)
+    # 3. Extract year, month, and day into separate columns
+    df_emt['year'] = df_emt['transaction_date'].dt.year
+    df_emt['month'] = df_emt['transaction_date'].dt.month
+    df_emt['day'] = df_emt['transaction_date'].dt.day
 
-# Find the average transaction amount for each customer
-avg_debit_transactions_per_customer = df_debit.groupby('customer_id')['amount_cad'].mean().reset_index()
+    # 3. Calculate transaction intervals for the same customer
 
-# Rename columns for clarity
-avg_debit_transactions_per_customer.columns = ['customer_id', 'avg_debit_transaction_amount']
+    df_emt = df_emt.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
 
-# Output the result
-print(avg_debit_transactions_per_customer)
+    # Group by customer_id and calculate transaction intervals
+    df_emt['transaction_interval_days'] = df_emt.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_emt['transaction_interval_days'] = df_emt['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_emt['amount_cad_normalized'] = scaler.fit_transform(df_emt[['amount_cad']])
+    print(df_emt)
 
-avg_credit_transactions_per_customer = df_credit.groupby('customer_id')['amount_cad'].mean().reset_index()
-avg_credit_transactions_per_customer.columns = ['customer_id', 'avg_credit_transaction_amount']
-print(avg_credit_transactions_per_customer)
+    # 2. Convert `transaction_date` to datetime
+    df_eft['transaction_date'] = pd.to_datetime(df_eft['transaction_date'])
 
-grouped = df_combined.groupby(["customer_id", "debit_credit"])["amount_cad"].sum().unstack(fill_value=0)
-grouped.columns = ['total_debit_amount_cad', 'total_credit_amount_cad']
-print(grouped)
+    # 3. Extract year, month, and day into separate columns
+    df_eft['year'] = df_eft['transaction_date'].dt.year
+    df_eft['month'] = df_eft['transaction_date'].dt.month
+    df_eft['day'] = df_eft['transaction_date'].dt.day
 
-# Group by customer_id to calculate metrics
-metrics = df_combined.groupby('customer_id').agg(
-    credit_count=('debit_credit', lambda x: (x == 'credit').sum()),
-    debit_count=('debit_credit', lambda x: (x == 'debit').sum()),
-    transaction_frequency=('customer_id', 'size'),
-    avg_transaction_interval_day=('transaction_interval_days', lambda x: x[x > 0].mean()),  # Exclude -1
-    mode_transaction_interval_day=('transaction_interval_days', majority),
-    date_range=('transaction_date', lambda x: (x.max() - x.min()).days),
-    mode_transaction_type=('transaction_type', majority),
-).reset_index()
-metrics['debit_count'] = metrics['transaction_frequency'] - metrics['credit_count']
-metrics['avg_transaction_interval_day'] = metrics['avg_transaction_interval_day'].fillna(-1)
+    # 3. Calculate transaction intervals for the same customer
 
-metrics = pd.merge(metrics, grouped, on='customer_id', how='inner')
-# Reorder columns for better readability
-metrics = metrics[['customer_id', 'total_debit_amount_cad', 'total_credit_amount_cad', 'debit_count', 'credit_count',
-                   'transaction_frequency', 'avg_transaction_interval_day',
-                   'mode_transaction_interval_day', 'mode_transaction_type', 'date_range']]
-print(metrics)
+    df_eft = df_eft.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
 
-merged_df = pd.merge(metrics, max_credit_transactions_per_customer, on='customer_id', how='inner')
-print(merged_df)
+    # Group by customer_id and calculate transaction intervals
+    df_eft['transaction_interval_days'] = df_eft.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_eft['transaction_interval_days'] = df_eft['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_eft['amount_cad_normalized'] = scaler.fit_transform(df_eft[['amount_cad']])
+    print(df_eft)
 
-merged_df_final = pd.merge(merged_df, avg_credit_transactions_per_customer, on='customer_id', how='inner')
-print(merged_df_final)
+    # 2. Convert `transaction_date` to datetime
+    df_cheque['transaction_date'] = pd.to_datetime(df_cheque['transaction_date'])
 
-merged_df_final = pd.merge(merged_df_final, max_debit_transactions_per_customer, on='customer_id', how='inner')
-print(merged_df_final)
+    # 3. Extract year, month, and day into separate columns
+    df_cheque['year'] = df_cheque['transaction_date'].dt.year
+    df_cheque['month'] = df_cheque['transaction_date'].dt.month
+    df_cheque['day'] = df_cheque['transaction_date'].dt.day
 
-merged_df_final = pd.merge(merged_df_final, avg_debit_transactions_per_customer, on='customer_id', how='inner')
-print(merged_df_final)
+    # 3. Calculate transaction intervals for the same customer
 
-from sklearn.preprocessing import LabelEncoder
+    df_cheque = df_cheque.sort_values(
+        by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
 
-# Initialize LabelEncoder
-label_encoder = LabelEncoder()
-merged_df_final['mode_transaction_type'] = label_encoder.fit_transform(merged_df_final['mode_transaction_type'])
-print(merged_df_final)
+    # Group by customer_id and calculate transaction intervals
+    df_cheque['transaction_interval_days'] = df_cheque.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_cheque['transaction_interval_days'] = df_cheque['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_cheque['amount_cad_normalized'] = scaler.fit_transform(df_cheque[['amount_cad']])
+    print(df_cheque)
 
-# Ratio of # of ecommerce transactions
-card_ratio = (
-    df_card.groupby("customer_id")["ecommerce_ind"]
-    .mean()  
-    .reset_index(name="ecommerce_ratio")
-)
+    # true flase to 1 0
+    df_card['ecommerce_ind'] = df_card['ecommerce_ind'].astype(int)
 
-# Ratio of # of cash transactions
-abm_ratio = (
-    df_abm.groupby("customer_id")["cash_indicator"]
-    .mean()
-    .reset_index(name="cash_ratio")
-)
-# Merge the ratios with the main table and fill missing values with 0
-merged_df_final = merged_df_final.merge(card_ratio, on="customer_id", how="left")
-merged_df_final = merged_df_final.merge(abm_ratio, on="customer_id", how="left")
-merged_df_final["ecommerce_ratio"] = merged_df_final["ecommerce_ratio"].fillna(0)
-merged_df_final["cash_ratio"] = merged_df_final["cash_ratio"].fillna(0)
+    # Replace missing values in `country`, `province`, and `city` with "unknown"
+    df_card[['country', 'province', 'city']] = df_card[['country', 'province', 'city']].fillna('unknown')
 
-# output the data file
-general_table_path = os.path.join(interim_dir, "general_table.csv")
-ensure_dir(general_table_path)
-merged_df_final.to_csv(general_table_path, index=False)
+    # Convert `transaction_date` to datetime
+    df_card['transaction_date'] = pd.to_datetime(df_card['transaction_date'])
 
-# Save the cleaned data files to the interim directory
-dataframes = {
-    "new_wire.csv": df_wire,
-    "new_emt.csv": df_emt,
-    "new_eft.csv": df_eft,
-    "new_cheque.csv": df_cheque,
-    "new_card.csv": df_card,
-    "new_abm.csv": df_abm
-}
+    # Extract year, month, and day into separate columns
+    df_card['year'] = df_card['transaction_date'].dt.year
+    df_card['month'] = df_card['transaction_date'].dt.month
+    df_card['day'] = df_card['transaction_date'].dt.day
 
-for filename, df in dataframes.items():
-    file_path = os.path.join(interim_dir, filename)
-    ensure_dir(file_path)
-    df.to_csv(file_path, index=False)
+    # Calculate transaction intervals for the same customer
+
+    df_card = df_card.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
+
+    # Group by customer_id and calculate transaction intervals
+    df_card['transaction_interval_days'] = df_card.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_card['transaction_interval_days'] = df_card['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_card['amount_cad_normalized'] = scaler.fit_transform(df_card[['amount_cad']])
+    print(df_card)
+
+    df_card["merchant_category"] = df_card["merchant_category"].astype(str)
+    df_mcc["Code"] = df_mcc["Code"].astype(str)
+    merged_df_card = df_card.merge(df_mcc, left_on="merchant_category", right_on="Code", how="left")
+
+    # Keep only relevant columns
+    df_filtered = merged_df_card[["customer_id", "MCC Group1"]].dropna(
+        subset=["MCC Group1"])  # Drop rows where MCC Group1 is missing
+
+    # Count occurrences of each MCC Group1 per customer
+    most_common_group = df_filtered.groupby(["customer_id", "MCC Group1"]).size().reset_index(name="count")
+
+    # Find the most common MCC Group1 for each customer
+    most_common_group = most_common_group.loc[most_common_group.groupby("customer_id")["count"].idxmax()]
+
+    # Ensure all customers appear in the final output
+    all_customers = df_card[["customer_id"]].drop_duplicates()
+    final_mcc = all_customers.merge(most_common_group, on="customer_id", how="left")
+
+    # true flase to 1 0
+    df_abm['cash_indicator'] = df_abm['cash_indicator'].astype(int)
+
+    # Replace missing values in `country`, `province`, and `city` with "unknown"
+    df_abm[['country', 'province', 'city']] = df_abm[['country', 'province', 'city']].fillna('unknown')
+
+    # Convert `transaction_date` to datetime
+    df_abm['transaction_date'] = pd.to_datetime(df_abm['transaction_date'])
+
+    # Extract year, month, and day into separate columns
+    df_abm['year'] = df_abm['transaction_date'].dt.year
+    df_abm['month'] = df_abm['transaction_date'].dt.month
+    df_abm['day'] = df_abm['transaction_date'].dt.day
+
+    # Calculate transaction intervals for the same customer
+
+    df_abm = df_abm.sort_values(by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
+
+    # Group by customer_id and calculate transaction intervals
+    df_abm['transaction_interval_days'] = df_abm.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_abm['transaction_interval_days'] = df_abm['transaction_interval_days'].fillna(-1).astype(int)
+    # Normalize/Standardize Numerical Values
+    df_abm['amount_cad_normalized'] = scaler.fit_transform(df_abm[['amount_cad']])
+    print(df_abm)
+
+    # Add a transaction_type column
+    df_wire['transaction_type'] = 'Wire'
+    df_card['transaction_type'] = 'Card'
+    df_abm['transaction_type'] = 'ABM'
+    df_eft['transaction_type'] = 'EFT'
+    df_emt['transaction_type'] = 'EMT'
+    df_cheque['transaction_type'] = 'Cheque'
+
+    # Select relevant columns
+    df_card = df_card[
+        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type', 'ecommerce_ind']]
+    df_abm = df_abm[
+        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type', 'cash_indicator']]
+    df_wire = df_wire[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_eft = df_eft[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_emt = df_emt[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_cheque = df_cheque[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+
+    # Combine all tables
+    df_combined = pd.concat([df_card, df_abm, df_wire, df_eft, df_emt, df_cheque], ignore_index=True)
+
+    # Convert transaction_date to datetime for uniformity
+    df_combined['transaction_date'] = pd.to_datetime(df_combined['transaction_date'])
+
+    # Calculate transaction intervals for the same customer
+
+    df_combined = df_combined.sort_values(
+        by=['customer_id', 'transaction_date'])  # Sort by customer_id and transaction_date
+
+    # Group by customer_id and calculate transaction intervals
+    df_combined['transaction_interval_days'] = df_combined.groupby('customer_id')['transaction_date'].diff().dt.days
+    df_combined['transaction_interval_days'] = df_combined['transaction_interval_days'].fillna(-1).astype(int)
+    print(df_combined)
+
+    # First, group by 'customer_id' and 'transaction_type' and count the occurrences
+    transaction_counts = df_combined.groupby(['customer_id', 'transaction_type']).size().reset_index(
+        name='transaction_count')
+
+    # Pivot the table to have customer_id as rows and transaction_type as columns
+    transaction_counts_pivot = transaction_counts.pivot_table(
+        index='customer_id',
+        columns='transaction_type',
+        values='transaction_count',
+        aggfunc='sum',
+        fill_value=0
+    )
+
+    # Ensure there are exactly 7 columns (transaction types)
+    # If there are less than 7 transaction types, we add extra columns with 0s
+    required_columns = [
+        'Cheque', 'Wire', 'Card', 'EFT', 'EMT', 'ABM'
+    ]
+
+    # Reindex to ensure there are 7 columns (adding 0s if needed)
+    transaction_counts_pivot = transaction_counts_pivot.reindex(columns=required_columns, fill_value=0)
+    print(transaction_counts_pivot)
+
+    df_credit = df_combined[df_combined['debit_credit'] == 'credit']
+    df_debit = df_combined[df_combined['debit_credit'] == 'debit']
+
+    # Find the maximum transaction amount for each customer
+    max_credit_transactions_per_customer = df_credit.groupby('customer_id')['amount_cad'].max().reset_index()
+
+    # Rename columns for clarity
+    max_credit_transactions_per_customer.columns = ['customer_id', 'max_credit_transaction_amount']
+
+    # Output the result
+    print(max_credit_transactions_per_customer)
+
+    max_debit_transactions_per_customer = df_debit.groupby('customer_id')['amount_cad'].max().reset_index()
+    max_debit_transactions_per_customer.columns = ['customer_id', 'max_debit_transaction_amount']
+    print(max_debit_transactions_per_customer)
+
+    # Find the average transaction amount for each customer
+    avg_debit_transactions_per_customer = df_debit.groupby('customer_id')['amount_cad'].mean().reset_index()
+
+    # Rename columns for clarity
+    avg_debit_transactions_per_customer.columns = ['customer_id', 'avg_debit_transaction_amount']
+
+    # Output the result
+    print(avg_debit_transactions_per_customer)
+
+    avg_credit_transactions_per_customer = df_credit.groupby('customer_id')['amount_cad'].mean().reset_index()
+    avg_credit_transactions_per_customer.columns = ['customer_id', 'avg_credit_transaction_amount']
+    print(avg_credit_transactions_per_customer)
+
+    grouped = df_combined.groupby(["customer_id", "debit_credit"])["amount_cad"].sum().unstack(fill_value=0)
+    grouped.columns = ['total_debit_amount_cad', 'total_credit_amount_cad']
+    print(grouped)
+
+    # Group by customer_id to calculate metrics
+    metrics = df_combined.groupby('customer_id').agg(
+        credit_count=('debit_credit', lambda x: (x == 'credit').sum()),
+        debit_count=('debit_credit', lambda x: (x == 'debit').sum()),
+        transaction_frequency=('customer_id', 'size'),
+        avg_transaction_interval_day=('transaction_interval_days', lambda x: x[x > 0].mean()),  # Exclude -1
+        mode_transaction_interval_day=('transaction_interval_days', majority),
+        date_range=('transaction_date', lambda x: (x.max() - x.min()).days),
+        mode_transaction_type=('transaction_type', majority),
+    ).reset_index()
+    metrics['debit_count'] = metrics['transaction_frequency'] - metrics['credit_count']
+    metrics['avg_transaction_interval_day'] = metrics['avg_transaction_interval_day'].fillna(-1)
+
+    metrics = pd.merge(metrics, grouped, on='customer_id', how='inner')
+    # Reorder columns for better readability
+    metrics = metrics[
+        ['customer_id', 'total_debit_amount_cad', 'total_credit_amount_cad', 'debit_count', 'credit_count',
+         'transaction_frequency', 'avg_transaction_interval_day',
+         'mode_transaction_interval_day', 'mode_transaction_type', 'date_range']]
+    print(metrics)
+
+    merged_df = pd.merge(metrics, max_credit_transactions_per_customer, on='customer_id', how='inner')
+    print(merged_df)
+
+    merged_df_final = pd.merge(merged_df, avg_credit_transactions_per_customer, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    merged_df_final = pd.merge(merged_df_final, max_debit_transactions_per_customer, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    merged_df_final = pd.merge(merged_df_final, avg_debit_transactions_per_customer, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    # Initialize LabelEncoder
+    label_encoder = LabelEncoder()
+    merged_df_final['mode_transaction_type'] = label_encoder.fit_transform(merged_df_final['mode_transaction_type'])
+    print(merged_df_final)
+
+    # Ratio of # of ecommerce transactions
+    card_ratio = (
+        df_card.groupby("customer_id")["ecommerce_ind"]
+        .mean()
+        .reset_index(name="ecommerce_ratio")
+    )
+
+    # Ratio of # of cash transactions
+    abm_ratio = (
+        df_abm.groupby("customer_id")["cash_indicator"]
+        .mean()
+        .reset_index(name="cash_ratio")
+    )
+    # Merge the ratios with the main table and fill missing values with 0
+    merged_df_final = merged_df_final.merge(card_ratio, on="customer_id", how="left")
+    merged_df_final = merged_df_final.merge(abm_ratio, on="customer_id", how="left")
+    merged_df_final["ecommerce_ratio"] = merged_df_final["ecommerce_ratio"].fillna(0)
+    merged_df_final["cash_ratio"] = merged_df_final["cash_ratio"].fillna(0)
+
+    merged_df_final = pd.merge(merged_df_final, transaction_counts_pivot, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    merged_df_final['online_ratio'] = (merged_df_final['Card'] * merged_df_final['ecommerce_ratio'] + merged_df_final[
+        'Wire'] + merged_df_final['EFT'] + merged_df_final['EMT']) / (
+                                                  merged_df_final['debit_count'] + merged_df_final['credit_count'])
+    merged_df_final.drop(columns=['Cheque', 'Wire', 'Card', 'EFT', 'EMT', 'ABM'], inplace=True)
+    print(merged_df_final)
+
+    merged_df_final = pd.merge(merged_df_final, final_mcc, on='customer_id', how='inner')
+    print(merged_df_final)
+
+    # output the data file
+    general_table_path = interim_dir + "general_table.csv"
+    merged_df_final.to_csv(general_table_path, index=False)
+    print("EDA done")
+
+
