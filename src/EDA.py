@@ -350,9 +350,18 @@ def get_eda(input_dir, interim_dir, resources_dir):
     merged_df_final.to_csv(general_table_path, index=False)
     print("EDA done")
 
-# df_wire.to_csv("/content/drive/My Drive/IMI_Data/new_wire.csv", index=False)
-# df_emt.to_csv("/content/drive/My Drive/IMI_Data/new_emt.csv", index=False)
-# df_eft.to_csv("/content/drive/My Drive/IMI_Data/new_eft.csv", index=False)
-# df_cheque.to_csv("/content/drive/My Drive/IMI_Data/new_cheque.csv", index=False)
-# df_card.to_csv("/content/drive/My Drive/IMI_Data/new_card.csv", index=False)
-# df_abm.to_csv("/content/drive/My Drive/IMI_Data/new_abm.csv", index=False)
+
+# Save the cleaned data files to the interim directory
+dataframes = {
+    "new_wire.csv": df_wire,
+    "new_emt.csv": df_emt,
+    "new_eft.csv": df_eft,
+    "new_cheque.csv": df_cheque,
+    "new_card.csv": df_card,
+    "new_abm.csv": df_abm
+}
+
+for filename, df in dataframes.items():
+    file_path = os.path.join(interim_dir, filename)
+    ensure_dir(file_path)
+    df.to_csv(file_path, index=False)

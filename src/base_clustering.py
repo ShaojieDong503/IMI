@@ -115,7 +115,9 @@ plt.ylabel('Silhouette Score')
 plt.title('Silhouette Method for Optimal Clusters')
 
 plt.tight_layout()
-plt.show()
+output_path = os.path.join(output_task1, 'Elbow_and_Silhouette.png')  
+plt.savefig(output_path, dpi=300, bbox_inches='tight')  
+plt.close()
 
 """The rate of decrease in inertia slows significantly after k=3"""
 
