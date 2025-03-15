@@ -18,232 +18,397 @@ import plotly.express as px
 import os
 from pathlib import Path
 
+# Mark the input and output directory
+input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
+output_task1 = os.path.join(output_dir, 'task1')
+interim_dir = os.path.join(output_dir, 'interim')
 
-def get_base_clustering(input_dir, output_dir, interim_dir):
-    new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
-    card_path = os.path.join(input_dir, 'card.csv')
+def ensure_dir(path):
+    Path(path).mkdir(parents=True, exist_ok=True)
+ensure_dir(output_task1)
 
-    df = pd.read_csv(new_general_table_path)
+new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
+card_path = os.path.join(input_dir, 'card.csv')
 
-    # All the avialiable feature that could be use for cluster model
-    feature_all = ['total_debit_amount_cad', 'total_credit_amount_cad',
-                   'debit_count', 'credit_count', 'transaction_frequency',
-                   'avg_transaction_interval_day', 'mode_transaction_interval_day',
-                   'mode_transaction_type', 'date_range', 'max_credit_transaction_amount',
-                   'avg_credit_transaction_amount', 'max_debit_transaction_amount',
-                   'avg_debit_transaction_amount', 'funnel_index',
-                   'funnel_points', 'structuring_points_x', 'score_missing_kyc', 'ecommerce_ratio', 'cash_ratio']
+df = pd.read_csv(new_general_table_path)
+df_card = pd.read_csv(card_path)
 
-    # Check the for all the feature above before building the model
+df.columns
 
-    correlation_matrix = df[feature_all].corr()
+# All the avialiable feature that could be use for cluster model
+feature_all = ['total_debit_amount_cad', 'total_credit_amount_cad',
+       'debit_count', 'credit_count', 'transaction_frequency',
+       'avg_transaction_interval_day', 'mode_transaction_interval_day',
+       'mode_transaction_type', 'date_range', 'max_credit_transaction_amount',
+       'avg_credit_transaction_amount', 'max_debit_transaction_amount',
+       'avg_debit_transaction_amount',  'funnel_index',
+       'funnel_points', 'structuring_points_x', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
+# Check the correlation for all the feature above before building the model
 
-    plt.title('Correlation Matrix Heatmap', fontsize=16)
+correlation_matrix = df[feature_all].corr()
 
-    plt.savefig(output_dir + 'Correlation Matrix Heatmap')
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
 
-    # This is all the final features we are going to use for clustering Removed: Total credit amount,debit_count,
-    # credit_count,max_credit_transaction_amount,max_debit_transaction_amount,structuring_points_x,count_index,
-    # funnel_points 'mode_transaction_type', 'date_range',
+plt.title('Correlation Matrix Heatmap', fontsize=16)
+plt.show()
+img1_output_path = os.path.join(output_task1, 'Correlation.png')
+plt.savefig(img1_output_path, bbox_inches='tight') 
 
-    feature_final = ['total_debit_amount_cad', 'transaction_frequency',
-                     'avg_transaction_interval_day', 'mode_transaction_interval_day',
-                     'avg_credit_transaction_amount',
-                     'avg_debit_transaction_amount', 'structuring_points_x',
-                     'funnel_points', 'structuring_points_x', 'score_missing_kyc', 'ecommerce_ratio', 'cash_ratio']
+# This is all the final features we are going to use for clustering
+# Removed: Total credit amount,debit_count, credit_count,max_credit_transaction_amount,max_debit_transaction_amount,structuring_points_x,count_index,funnel_points 'mode_transaction_type', 'date_range',
 
-    correlation_matrix = df[feature_final].corr()
+feature_final = ['total_debit_amount_cad', 'transaction_frequency',
+       'avg_transaction_interval_day', 'mode_transaction_interval_day',
+       'avg_credit_transaction_amount', 
+       'avg_debit_transaction_amount', 'structuring_points_x', 
+       'funnel_points', 'score_missing_kyc','ecommerce_ratio', 'cash_ratio']
 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
+correlation_matrix = df[feature_final].corr()
 
-    plt.title('Correlation Matrix Heatmap', fontsize=16)
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', square=True)
 
-    plt.show()
+plt.title('Correlation Matrix Heatmap', fontsize=16)
 
-    # Scale the features
-    scaler = StandardScaler()
-    df_final = df[feature_final]
-    data_scaled = scaler.fit_transform(df_final)
-    df_scaled = pd.DataFrame(data_scaled, columns=feature_final)
 
-    # Build a KMeans Model
+plt.show()
 
-    silhouette_scores = []
-    k_range = range(2, 10)
+# Scale the features
+scaler = StandardScaler()
+df_final = df[feature_final]
+data_scaled = scaler.fit_transform(df_final)
+df_scaled = pd.DataFrame(data_scaled, columns=feature_final)
 
-    inertia = []
-    silhouette_scores = []
+# Build a KMeans Model using the Elbow Method and Silhouette Method
 
-    for k in k_range:
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        clusters = kmeans.fit_predict(df_scaled)
-        inertia.append(kmeans.inertia_)
-        silhouette_scores.append(silhouette_score(df_scaled, clusters))
+silhouette_scores = []
+k_range = range(2, 8)
 
-    plt.figure(figsize=(12, 6))
-    plt.subplot(1, 2, 1)
-    plt.plot(k_range, inertia, marker='o', linestyle='--', color='blue')
-    plt.xticks(k_range)
-    plt.xlabel('Number of Clusters (k)')
-    plt.ylabel('Inertia')
-    plt.title('Elbow Method for Optimal Clusters')
 
-    plt.subplot(1, 2, 2)
-    plt.plot(k_range, silhouette_scores, marker='o', linestyle='--', color='green')
-    plt.xticks(k_range)
-    plt.xlabel('Number of Clusters (k)')
-    plt.ylabel('Silhouette Score')
-    plt.title('Silhouette Method for Optimal Clusters')
+inertia = []
+silhouette_scores = []
 
-    plt.tight_layout()
-    plt.savefig(output_dir + 'Elbow Method for Optimal Clusters & Silhouette Method for Optimal Clusters')
-
-    """The rate of decrease in inertia slows significantly after k=3"""
-
-    # Use the Best K for the model
-    chosen_k = k_range[np.argmax(silhouette_scores)]
-    print(chosen_k)
-
-    kmeans = KMeans(n_clusters=chosen_k, random_state=71)
+for k in k_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
     clusters = kmeans.fit_predict(df_scaled)
-    df['cluster'] = clusters
-
-    # Create an interactive scatter plot
-    fig = px.scatter(
-        df,
-        x='cluster',
-        y='avg_debit_transaction_amount',
-        color='cluster',  # Color points by their cluster,
-        title='Interactive K-Means Clustering Visualization',
-    )
-
-    # Show the interactive plot
-    fig.savefig(output_dir + 'Interactive K-Means Clustering Visualization')
-
-    # Create a stacked bar plot
-    fig = px.histogram(
-        df,
-        x='cluster',
-        y='funnel_points',
-        color='cluster'  # Color bars by their cluster
-    )
-
-    # Show the plot
-    fig.savefig(output_dir + "Cluster bar plot")
+    inertia.append(kmeans.inertia_)
+    silhouette_scores.append(silhouette_score(df_scaled, clusters))
 
 
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.plot(k_range, inertia, marker='o', linestyle='--', color='blue')
+plt.xticks(k_range)
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Inertia')
+plt.title('Elbow Method for Optimal Clusters')
 
-    """以下是输出最后的算分和输出output file 1
 
-    --------------------------------------------------------------------------------------------------------------------------
-    """
+plt.subplot(1, 2, 2)
+plt.plot(k_range, silhouette_scores, marker='o', linestyle='--', color='green')
+plt.xticks(k_range)
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Silhouette Score')
+plt.title('Silhouette Method for Optimal Clusters')
 
-    # Calculate the one with high transaction frequency
-    def assign_high_freq_score(
-            df: pd.DataFrame,
-            cluster_col: str = "cluster",
-            freq_col: str = "transaction_frequency",
-            score_col: str = "score_high_freq"
-    ) -> pd.DataFrame:
-        freq_95 = df.groupby(cluster_col)[freq_col].transform(lambda x: x.quantile(0.95))
-        freq_99 = df.groupby(cluster_col)[freq_col].transform(lambda x: x.quantile(0.99))
+plt.tight_layout()
+output_path = os.path.join(output_task1, 'Elbow_and_Silhouette.png')  
+plt.savefig(output_path, dpi=300, bbox_inches='tight')  
+plt.close()
 
-        # Initialize or reset the score column to 0
-        df[score_col] = 0
+"""The rate of decrease in inertia slows significantly after k=3"""
 
-        # Assign 2 points for > 99th percentile
-        mask_99 = df[freq_col] > freq_99
-        df.loc[mask_99, score_col] = 1
+# Use the Best K for the model
+chosen_k = k_range[np.argmax(silhouette_scores)]
+print(chosen_k)
 
-        # Assign 1 point for > 95th percentile (but <= 99th)
-        mask_95 = (df[freq_col] > freq_95) & (~mask_99)
-        df.loc[mask_95, score_col] = 0.5
+kmeans = KMeans(n_clusters=chosen_k , random_state=71)
+clusters = kmeans.fit_predict(df_scaled)
+df['cluster'] = clusters
 
-        return df
+# Create an interactive scatter plot for avg_debit_transaction_amount
 
-    df = assign_high_freq_score(
-        df,
-        cluster_col="cluster",
-        freq_col="transaction_frequency",
-        score_col="score_high_freq"
-    )
+fig = px.scatter(
+    df,
+    x='cluster',
+    y='avg_debit_transaction_amount',
+    color='cluster',  # Color points by their cluster,
+    title='Interactive K-Means Clustering Visualization',
+)
+fig.update_xaxes(
+    tickmode='array',
+    tickvals=sorted(df['cluster'].unique()),  
+    ticktext=sorted(df['cluster'].unique())   
+)
 
-    # Calculate the one with high transaction debit amount
-    def assign_high_amount_score_debit(
-            df_high_amount: pd.DataFrame,
-            cluster_col: str = "cluster",
-            amount_col: str = "total_debit_amount_cad",
-            score_col: str = "score_debit_high_amount"
-    ) -> pd.DataFrame:
-        amount_95 = df_high_amount.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
-        amount_99 = df_high_amount.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+# Show the interactive plot
+fig.show()
+img1_output_path = os.path.join(output_task1, 'Avg_debit_amount.png')
+fig.write_image(img1_output_path)
 
-        # Initialize or reset the score column to 0
-        df_high_amount[score_col] = 0
+# Create a stacked bar plot for the funnel points by cluster
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='funnel_points',
+    color='cluster'  # Color bars by their cluster
+)
+img2_output_path = os.path.join(output_task1, 'Funnel_points.png')
+fig.write_image(img2_output_path) 
 
-        # Assign 2 points for > 99th percentile
-        mask_99 = df_high_amount[amount_col] > amount_99
-        df_high_amount.loc[mask_99, score_col] = 1
 
-        # Assign 1 point for > 95th percentile (but <= 99th)
-        mask_95 = (df_high_amount[amount_col] > amount_95) & (~mask_99)
-        df_high_amount.loc[mask_95, score_col] = 0.5
 
-        return df_high_amount
+# Create a clustered bar plot for the funnel points and structuring points comparison
+df_agg = df.groupby('cluster')[['funnel_points', 'structuring_points_x']].mean().reset_index()
 
-    df = assign_high_amount_score_debit(
-        df,
-        cluster_col="cluster",
-        amount_col="total_debit_amount_cad",
-        score_col="score_debit_high_amount"
-    )
+# Long Format
+df_long = df_agg.melt(
+    id_vars='cluster',
+    value_vars=['funnel_points', 'structuring_points_x'],
+    var_name='metric',
+    value_name='score'
+)
 
-    # Calculate the one with high transaction credit amount
-    def assign_high_amount_score_credit(
-            df_high_amount: pd.DataFrame,
-            cluster_col: str = "cluster",
-            amount_col: str = "total_credit_amount_cad",
-            score_col: str = "score_credit_high_amount"
-    ) -> pd.DataFrame:
-        amount_95 = df_high_amount.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
-        amount_99 = df_high_amount.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+# create a grouped bar plot
+fig = px.bar(
+    df_long,
+    x='cluster',
+    y='score',
+    color='metric',          # color using metric
+    barmode='group',         # group bars
+    title='Cluster Metrics Comparison',
+    labels={'score': 'Average Score', 'cluster': 'Cluster'},
+    color_discrete_map={
+        'funnel_points': 'red',      # color for funnel_points
+        'structuring_points_x': 'blue'
+    }
+)
 
-        # Initialize or reset the score column to 0
-        df_high_amount[score_col] = 0
+# optimize the layout
+fig.update_layout(
+    xaxis={'type': 'category'},          
+    legend_title='Metric Type',
+    hovermode='x unified'
+)
 
-        # Assign 2 points for > 99th percentile
-        mask_99 = df_high_amount[amount_col] > amount_99
-        df_high_amount.loc[mask_99, score_col] = 1
+# Show the plot
+fig.show()
+img2_output_path = os.path.join(output_task1, 'Cluster_comparison_1.png')
+fig.write_image(img2_output_path) 
 
-        # Assign 1 point for > 95th percentile (but <= 99th)
-        mask_95 = (df_high_amount[amount_col] > amount_95) & (~mask_99)
-        df_high_amount.loc[mask_95, score_col] = 0.5
 
-        return df_high_amount
+# Clutsers and cash ratio
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='cash_ratio',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'cash_ratio.png')
+fig.write_image(img2_output_path) 
 
-    df = assign_high_amount_score_credit(
-        df,
-        cluster_col="cluster",
-        amount_col="total_credit_amount_cad",
-        score_col="score_credit_high_amount"
-    )
+# Cluster and Ecommerce ratio
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='ecommerce_ratio',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'ecommerce_ratio.png')
+fig.write_image(img2_output_path) 
 
-    df["score_total"] = df["funnel_points"] + df["structuring_points_y"] + df["score_missing_kyc"] + df[
-        "score_high_freq"] + \
-                        df["score_debit_high_amount"] + df["score_credit_high_amount"]
+#Cluster and KYC missing score
+fig = px.histogram(
+    df,
+    x='cluster',
+    y='score_missing_kyc',
+    color='cluster'  # Color bars by their cluster
+)
+fig.show()
+img2_output_path = os.path.join(output_task1, 'cluster_missing_scores.png')
+fig.write_image(img2_output_path) 
 
-    # Persons with highest score(>99%) are flaged as bad actors
-    threshold = df["score_total"].quantile(0.995)
-    df["bad_actor"] = df["score_total"] > threshold.astype(int)
+df.columns
 
-    task1_output_path = output_dir + 'task1.csv'
-    df.to_csv(task1_output_path, index=False)
+"""以下是输出最后的算分和输出output file 1
 
-    df['bad_actor'].value_counts()
+--------------------------------------------------------------------------------------------------------------------------
+"""
 
-    bad_actors_df = df[df['bad_actor'] == 1]
-    print(bad_actors_df)
+# Calculate the one with high transaction frequency
+def assign_high_freq_score(
+    df: pd.DataFrame,
+    cluster_col: str = "cluster",
+    freq_col: str = "transaction_frequency",
+    score_col: str = "score_high_freq"
+) -> pd.DataFrame:
+
+    freq_95 = df.groupby(cluster_col)[freq_col].transform(lambda x: x.quantile(0.95))
+    freq_99 = df.groupby(cluster_col)[freq_col].transform(lambda x: x.quantile(0.99))
+
+    # Initialize or reset the score column to 0
+    df[score_col] = 0
+
+    # Assign 2 points for > 99th percentile
+    mask_99 = df[freq_col] > freq_99
+    df.loc[mask_99, score_col] = 2
+
+    # Assign 1 point for > 95th percentile (but <= 99th)
+    mask_95 = (df[freq_col] > freq_95) & (~mask_99)
+    df.loc[mask_95, score_col] = 1
+
+    return df
+
+df = assign_high_freq_score(
+    df,
+    cluster_col="cluster",
+    freq_col="transaction_frequency",
+    score_col="score_high_freq"
+)
+
+
+# Calculate the one with high transaction debit amount
+def assign_high_amount_score(
+    df: pd.DataFrame,
+    cluster_col: str = "cluster",
+    amount_col: str = "total_debit_amount_cad",
+    score_col: str = "score_debit_high_amount"
+) -> pd.DataFrame:
+
+    amount_95 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
+    amount_99 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+
+    # Initialize or reset the score column to 0
+    df[score_col] = 0
+
+    # Assign 2 points for > 99th percentile
+    mask_99 = df[amount_col] > amount_99
+    df.loc[mask_99, score_col] = 2
+
+    # Assign 1 point for > 95th percentile (but <= 99th)
+    mask_95 = (df[amount_col] > amount_95) & (~mask_99)
+    df.loc[mask_95, score_col] = 1
+
+    return df
+
+df = assign_high_amount_score(
+    df,
+    cluster_col="cluster",
+    amount_col="total_debit_amount_cad",
+    score_col="score_debit_high_amount"
+)
+
+# Calculate the one with high transaction credit amount
+def assign_high_amount_score(
+    df: pd.DataFrame,
+    cluster_col: str = "cluster",
+    amount_col: str = "total_credit_amount_cad",
+    score_col: str = "score_credit_high_amount"
+) -> pd.DataFrame:
+
+    amount_95 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
+    amount_99 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+
+    # Initialize or reset the score column to 0
+    df[score_col] = 0
+
+    # Assign 2 points for > 99th percentile
+    mask_99 = df[amount_col] > amount_99
+    df.loc[mask_99, score_col] = 2
+
+    # Assign 1 point for > 95th percentile (but <= 99th)
+    mask_95 = (df[amount_col] > amount_95) & (~mask_99)
+    df.loc[mask_95, score_col] = 1
+
+    return df
+
+df = assign_high_amount_score(
+    df,
+    cluster_col="cluster",
+    amount_col="total_credit_amount_cad",
+    score_col="score_credit_high_amount"
+)
+
+# Calculate the one with high transaction ecommerce ratio
+def assign_high_amount_score(
+    df: pd.DataFrame,
+    cluster_col: str = "cluster",
+    amount_col: str = "ecommerce_ratio",
+    score_col: str = "score_ecommerce_ratio"
+) -> pd.DataFrame:
+
+    amount_95 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
+    amount_99 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+
+    # Initialize or reset the score column to 0
+    df[score_col] = 0
+
+    # Assign 2 points for > 99th percentile
+    mask_99 = df[amount_col] > amount_99
+    df.loc[mask_99, score_col] = 2
+
+    # Assign 1 point for > 95th percentile (but <= 99th)
+    mask_95 = (df[amount_col] > amount_95) & (~mask_99)
+    df.loc[mask_95, score_col] = 1
+
+    return df
+
+df = assign_high_amount_score(
+    df,
+    cluster_col="cluster",
+    amount_col="ecommerce_ratio",
+    score_col="score_ecommerce_ratio"
+)
+
+
+# Calculate the one with high transaction cash ratio
+def assign_high_amount_score(
+    df: pd.DataFrame,
+    cluster_col: str = "cluster",
+    amount_col: str = "cash_ratio",
+    score_col: str = "score_cash_ratio"
+) -> pd.DataFrame:
+
+    amount_95 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.95))
+    amount_99 = df.groupby(cluster_col)[amount_col].transform(lambda x: x.quantile(0.99))
+
+    # Initialize or reset the score column to 0
+    df[score_col] = 0
+
+    # Assign 1 points for > 99th percentile
+    mask_99 = df[amount_col] > amount_99
+    df.loc[mask_99, score_col] = 2
+
+    # Assign 0.5 point for > 95th percentile (but <= 99th)
+    mask_95 = (df[amount_col] > amount_95) & (~mask_99)
+    df.loc[mask_95, score_col] = 1
+
+    return df
+
+df = assign_high_amount_score(
+    df,
+    cluster_col="cluster",
+    amount_col="cash_ratio",
+    score_col="score_cash_ratio"
+)
+
+
+df["score_total"] = df["funnel_points"] + df["structuring_points_x"]+df["score_missing_kyc"]+df["score_high_freq"]+df["score_debit_high_amount"]+df["score_credit_high_amount"]+df["score_ecommerce_ratio"]+df["score_cash_ratio"]
+
+# Persons with highest score(>99.5%) are flaged as bad actors
+threshold = df["score_total"].quantile(0.995)
+df["bad_actor"] = df["score_total"] > threshold.astype(int)
+
+# Output the final result
+task1_output_path = os.path.join(output_task1, 'task1.csv')
+df.to_csv(task1_output_path, index=False)
+
+df['bad_actor'].value_counts()
+
+bad_actors_df = df[df['bad_actor'] == 1]
+print(bad_actors_df)

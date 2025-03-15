@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 
 # Create input/output directories
-RUN mkdir -p /mnt/data /mnt/output /mnt/resources
+RUN mkdir -p /mnt/data /mnt/output /mnt/resources /mnt/output/task1 /mnt/output/task2
 
 # Copy resource
 COPY resources/ /mnt/resources/
