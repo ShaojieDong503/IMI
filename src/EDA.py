@@ -343,6 +343,9 @@ def get_eda(input_dir, interim_dir, resources_dir):
     print(merged_df_final)
 
     merged_df_final = pd.merge(merged_df_final, final_mcc, on='customer_id', how='inner')
+    merged_df_final['mode_merchant_group'] = merged_df_final["MCC Group1"]
+    merged_df_final.drop(columns=["count", 'MCC Group1'], inplace=True)
+    merged_df_final['mode_merchant_group'] = merged_df_final['mode_merchant_group'].replace(r'^\s*$', 'Other', regex=True).fillna('Other')
     print(merged_df_final)
 
     # output the data file
