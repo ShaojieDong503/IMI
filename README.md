@@ -231,7 +231,7 @@ We keep all the data points and make missing fields particularly geographical on
    - For customers without card transactions, the group will be "No certain group'.
    - Fill the rest of the blank value with 'Other' because the only merchant group they have is 'Other'.
 
-### 10. **Handle Missing or Special Values**
+### 11. **Handle Missing or Special Values**
    - Fill `n/a` values with `-1` because the first-day interval could be `-1`, and filling with the mean might result in `NaN`. Therefore, missing or special values will be replaced with `-1`.
 # Task1
 ## The Scoring System
