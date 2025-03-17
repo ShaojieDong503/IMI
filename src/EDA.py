@@ -29,7 +29,7 @@ cheque_path = os.path.join(input_dir, 'cheque.csv')
 eft_path = os.path.join(input_dir, 'eft.csv')
 emt_path = os.path.join(input_dir, 'emt.csv')
 wire_path = os.path.join(input_dir, 'wire.csv')
-mcc_path = os.path.join(resource_dir, 'wire.csv')
+mcc_path = os.path.join(resource_dir, 'mcc_unique_codes.csv')
 
 df_abm = pd.read_csv(abm_path)
 df_wire = pd.read_csv(wire_path)
