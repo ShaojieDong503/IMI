@@ -346,10 +346,11 @@ merged_df_final['online_ratio'] = (merged_df_final['Card'] * merged_df_final['ec
 merged_df_final.drop(columns=['Cheque', 'Wire', 'Card', 'EFT', 'EMT', 'ABM'], inplace=True)
 print(merged_df_final)
 
-merged_df_final = pd.merge(merged_df_final, final_mcc, on='customer_id', how='inner')
+final_mcc['MCC Group1'] = final_mcc['MCC Group1'].replace(r'^\s*$', 'Other', regex=True).fillna('Other')
+merged_df_final = pd.merge(merged_df_final, final_mcc, on='customer_id', how='left')
 merged_df_final['mode_merchant_group'] = merged_df_final["MCC Group1"]
 merged_df_final.drop(columns=["count", 'MCC Group1'], inplace=True)
-merged_df_final['mode_merchant_group'] = merged_df_final['mode_merchant_group'].replace(r'^\s*$', 'Other', regex=True).fillna('Other')
+merged_df_final['mode_merchant_group'].fillna('No certain group', inplace=True)
 print(merged_df_final)
 
 # output the data file
