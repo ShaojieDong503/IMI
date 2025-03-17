@@ -24,27 +24,27 @@ This project addresses the challenge of detecting potential money laundering act
 
 ## 1. Data Integration & Preprocessing  
 ### Inputs:  
-- Transaction data (CSVs: Card, ATM, ETF, Wire)  
+- Transaction data (CSVs: Card, ABM, ETF, Wire, EMT, Cheque)  
 - KYC data (industry code, employee count, sales, etc.)  
 
 ### Process:  
 1. **Exploratory Data Analysis (EDA)**  
    - Merge transaction data into a unified **General Aggregate Table** (features: avg. transaction frequency, cash transaction ratio, etc.).  
-   - Handle KYC missingness via industry-specific imputation (e.g., fill "employee count" with sector median).  
+
 
 2. **Feature Engineering**  
-   - Calculate **Red Flag Scores** during EDA.  
-   - Remove high-correlation features.  
+   - Calculate **Red Flag Scores** after EDA.  
+   - Check correlation between features.  
 
 
 ## 2. Task 1: Rule-Guided Clustering  
 ### Input:  
-- General Aggregate Table + Red Flag Scores  
+- General Aggregate Table + Red Flag Scores.  
 
 ### Process:  
-1. **K-means Clustering**  
-   - Apply PCA for dimensionality reduction (retain 90% variance).  
-   - Optimize cluster count using **Elbow Method** (final k=4).  
+1. **K-means Clustering**
+   - Remove highly correlated features.   
+   - Optimize cluster count using **Inertia and Silhouette scores** (final k=4).  
 
 2. **Intra-Cluster Anomaly Scoring**  
    - For each customer in a cluster:  
@@ -53,25 +53,24 @@ This project addresses the challenge of detecting potential money laundering act
      - Detailed scoring system introduction are under [Task 1](#task1).
 
 3. **Final Risk Ranking**  
-   - Total Score = Red Flag Score + Intra-Cluster Anomaly Score  
+   - Total Score = Red Flag Score + Intra-Cluster Outlier Score.  
    - Flag customers in **Top 0.5%** as "High-Risk Candidates".  (0.5% can help us focus on exterme scores and have more flexibility compares to a fixed number)
 
 
 ## 3. Task 2: Embedding-Based Validation  
 ### Input:  
-- Same features as Task 1 
+- Same as Task 1 
 
 ### Process:  
 1. **Contrastive Learning for Embeddings**  
    - Train a contrastive learning model to generate 6D customer embeddings.  
-   - Augmentation: Synthetic noise injection on transaction amounts/frequencies.  
 
 2. **Secondary Clustering**  
    - Apply K-means clustering to embedding space.  
    - Identify **Target Clusters** where High-Risk Candidates concentrate.  
 
 3. **Cross-Task Validation**  
-   - Compute overlap: If most High-Risk Candidate(Customer has a high score) concentrate in certain clusters, we say they share more spending behaviors and characteristics, which makes they more suspecious.  Customer who has a high score but not concentrate with others in a cluster means it has lower risk but still need to be monitored. 
+   - Compute overlap: If most High-Risk Candidate(Customer has a high score) concentrate in certain clusters, we say they share more spending behaviors and characteristics, which makes they more suspecious.  Customer who has a high score but not concentrate with others in a cluster means it has slightly lower risk but still need to be monitored. 
 
 
 # Code Walkthrough
@@ -107,6 +106,12 @@ This folder contains **intermediate files**, including cleaned datasets and proc
 | `general_table.csv`       | Processed dataset after **data cleaning** and **feature engineering**. |
 | `new_general_table.csv`    | Contains **all the features** that are ready to use |
 |  `customer_embeddings.csv`  | A csv file for all customer embeddings |
+|  `new_abm.csv`  | Cleaned ABM transaction data |
+|  `new_card.csv`  | Cleaned Card transaction data |
+|  `new_cheque.csv`  | Cleaned Cheque transaction data |
+|  `new_eft.csv`  | Cleaned EFT transaction data |
+|  `new_emt.csv`  | Cleaned EMT transaction data |
+|  `new_wire.csv`  | Cleaned Wire transaction data |
 
 ---
 
@@ -115,15 +120,15 @@ This folder stores **all outputs related to Task 1**, which involves **scoring, 
 
 | **File Name**            | **Description** |
 |--------------------------|----------------|
-| `task1.csv`             | Contains **all features, risk scores** for all customer and a column indicating potential bad-actors. |
-|  `Correlation.png`  | The correlation between all the features. |
-|  `cash_ratio.png`  | The visulization for cash ratio across all clusters. |
-|  `Cluster_comparison_1.png`  | The visulization to compare different socres across all clusters. |
-|  `cluster_missing_scores.png`  | The cvisulization for missing value scores across all clusters. |
-|  `ecommerce_ratio.png`  | The visulization for ecommerce ratio across all clusters. |
-|  `Funnel_points.png`  | The visulization for funnel points across all clusters. |
-|  `Avg_debit_amount.png`  | The visulization for average debit amount across all clusters. |
-
+| `task1.csv`             | Contains **all features, risk scores** for all customer and a column indicating potential bad-actors |
+|  `Correlation.png`  | The correlation between all the features |
+|  `cash_ratio.png`  | The visulization for cash ratio across all clusters |
+|  `Cluster_comparison_1.png`  | The visulization to compare different socres across all clusters |
+|  `cluster_missing_scores.png`  | The cvisulization for missing value scores across all clusters |
+|  `ecommerce_ratio.png`  | The visulization for ecommerce ratio across all clusters |
+|  `Funnel_points.png`  | The visulization for funnel points across all clusters |
+|  `Avg_debit_amount.png`  | The visulization for average debit amount across all clusters |
+|  `Elbow_and_Silhouette.png`  | The visulization for Silhouette and Inertia Scores for Kmeans |
 ---
 
 ### 📂 **3. Task 2 (`/mnt/output/task2/`)**
@@ -135,11 +140,12 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 |  `results_summary.txt`  | All cluster results and lists of potential bad actors that we identified from Task 1 and Task 2. |
 |  `Correlation.png`  | The correlation between all the features. |
 |  `cash_ratio.png`  | The visulization for cash ratio across all clusters. |
-|  `Cluster_comparison_1.png`  | The visulization to compare different socres across all clusters. |
+|  `comparison_points.png`  | The visulization to compare different socres across all clusters. |
 |  `cluster_missing_scores.png`  | The cvisulization for missing value scores across all clusters. |
 |  `ecommerce_ratio.png`  | The visulization for ecommerce ratio across all clusters. |
 |  `Funnel_points.png`  | The visulization for funnel points across all clusters. |
 |  `Avg_debit_amount.png`  | The visulization for average debit amount across all clusters. |
+|  📂 `high_risk_customers`  | A folder contains transactions timeseries plots for all high-risk customers. |
 ---
 
 
@@ -274,7 +280,7 @@ Missing infomation in KYC table can indicate the customer is trying to hide it's
 #### **Rules**  
 | Missing Field Type          | Points per Missing Field |  
 |-----------------------------|--------------------------|  
-| **Every missing Information** (Industry code, location,sales) | 1                       |  
+| **Every missing Information** (Industry code, location,sales, etc.) | 1                       |  
 | **Max Possible**            | 5                        |  
 
 ---
@@ -294,9 +300,9 @@ For each cluster, evaluate 5 metrics:
 ---
 Customer has a high score usually has the following characteristics:
 
-1. May have many high risk transactions that need to be reported
-2. We (as bank) may not know the customer well enough
-3. May be an critical customer as they are interact with our bank more than others
+1. May have many high risk transactions that need to be reported.
+2. We (as bank) may not know the customer well enough.
+3. May be an critical customer as they are interact with our bank more than others.
 
 Either situation reqires more attention on the customer, we need to keep monitoring the customer or verify the customer identity.
 
@@ -329,9 +335,13 @@ The goal is to create embedding that act like locations in real life. Speaking w
 ### Specific Input/Output Format
 In our SCARF model, it takes engineered client records and risk scores based on their transaction history as input. The output is a 6-dimensional embedding that represents each client’s position in the feature space. The distance between two users' locations reflects how similar their transaction patterns are.
 ## Summary
+We use Kmeans clustering to visulize the embedding locations for every customer. Then we look back to Task 1 to see where the high-scoring customers are distributed among new clusters.
+
+If high-scoring are concentrated within certain cluster, they are the high-risk customers we need to pay more attention to. We still need to keep monitoring other high-scoring customers as well.
+
 To understand Task 2 outputs, please refer to the **additional.csv** where it's containing the output from Task1 and the clustering results from Task 2. Then you can refer to **reults_summary.txt** to find the customer and bad actors distribution for both task. 
 - *Task 1 Clusters*: Look under `Task 1 Cluster Distribution for Bad Actors`.
-- *Task 2 Clusters*: See `Final Cluster Distribution for Bad Actors`.  
+- *Task 2 Clusters*: See `Clutser Distribution for Bad Actors (Task 2)`.  
 
 **Visual Analysis**: Use radar charts (e.g., `embedding_radar.png`) to compare embedding distributions of high-risk clusters.
 
@@ -367,11 +377,11 @@ We identify the top **two** clusters that contain the highest concentration of h
 - If `results_summary.txt` indicates a **large proportion of high-risk users** in specific clusters from **Task 2**, follow these steps:  
 
   - **All High-Scoring Customers**:  
-    - Refer to **`Task 1: All High-Risk Customers`**.  
+    - Refer to **`Task 1: All Mid to High Risk Customers`**.  
     - These customers require **closer attention**, as they have been flagged as **potential bad actors** based on their transaction patterns.  
 
   - **Customers Identified by Both Tasks**:  
-    - Look under **`Task 2: High-Risk Customers in Top 2 Clusters`**.  
+    - Look under **`Task 2: High-Risk Customers`**.  
     - **Top 2 clusters** are the two clusters which contains most high-scoring customers.
     - These customers are **concentrated in the key clusters from Task 2**, meaning they exhibit **similar transaction patterns and characteristics**.  
     - They have a **higher likelihood** of being **actual bad actors** compared to other customers.  
@@ -407,30 +417,21 @@ The **model runtime was capped at 2 hours**, requiring us to **reduce model comp
 ### 3. Variability in Embedding Consistency  
 Embeddings generated for different datasets are **not guaranteed to be identical** across runs. This is expected, as **embeddings are inherently data-dependent**, meaning variations in input data can lead to differences in the learned representation space.
 
-# Next Steps
-Time series prediction scoring
+### 4. Limited Data
+The model is trained using unlabeled data; model performance will be more accurately accessed once we have the true label of the data.
 
 
-## Notes  (Reproducing Outputs from our presentation)
+# Next Steps(In-prograss)
+## Enhance Scoring Systems
+We are currently developing **Time series prediction scoring**, where we are predicting customer transaction behavior using ARIMA mdoel and compares the true behaviour with our model prediction.
 
-We have updated our code to **incorporate additional features** after recording our presentation and we are not able to record a new presentation due to time constraint. As a result, the **output files** (including the **number of clusters** and **customer embeddings**) differ from those in our recorded presentation for the training data.  
+| Scoring Rules | Points |  
+|-------------------|--------|  
+| Way Beyond CI (10 standard errors away from prediction)            | 2      |  
+| Beyond 95% CI     | 1      |  
+| Within 95% CI     | 0      |  
 
-However, the **overall workflow and key findings remain unchanged**—we continue to focus on customers flagged by **both tasks**:  
-- **High-scoring customers in Task 1**  
-- **Customers in the top 2 clusters** (i.e., clusters containing the most high-scoring customers) from Task 2  
+## Interactive Dashboard
+We also build a dashboard using Tableau that visuallized bad actors, see link below:
+ https://public.tableau.com/views/BadActor_visualization/1?:language=zhCN&publish=yes&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link
 
-### **Key Differences Between the Presentation and Updated Version**  
-
-1. **Increase in High-Scoring Customers**  
-   - **Presentation Version**: Identified **33** high-scoring customers in the training dataset.  
-   - **Updated Version**: Now detects **68** high-scoring customers.  
-
-2. **Customers Targeted in Task 2**  
-   - **Presentation Version**: All **33** flagged customers were identified in **Task 2**, with **21 requiring further investigation**.  
-   - **Updated Version**: Now, **34 out of 68** high-scoring customers are flagged in **Task 2**.  
-
-3. **Detailed Customer Identifications**  
-   - The updated **customer IDs** and results can be found in **`results_summary.txt`**.  
-
-   We included both outputs from the old version (the one we use for presentation) and the latest version.
-   Please find the presentation outputs in the **Old_ouput_Presentation** folder and the latest one in **output** folder for detailed comparison.
