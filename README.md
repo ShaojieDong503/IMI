@@ -180,7 +180,7 @@ This folder contains **Task 2 outputs**, integrating **contrastive learning-base
 | `merchant_category` | The type of merchant or business where the transaction took place (e.g., groceries, restaurants, retail). |
 | `ecommerce_ind`     | A binary indicator (likely yes/no or 1/0) specifying whether the transaction was an e-commerce purchase (online) or an in-person transaction. |
 ## Data Cleaning
-We keep all the data points and make missing fields particularly geographical ones like city, province, and country to *unknown* instead of NaN
+We keep all the data points and make missing fields particularly geographical ones like city, province, and country *unknown* instead of NaN
 ## Feature Engineering
 ### Transaction Data Processing
 ### 1. **Convert `transaction_date` to `datetime` and Split into Year, Month, and Day**
@@ -222,7 +222,16 @@ We keep all the data points and make missing fields particularly geographical on
    - **Cash Transaction Ratio**: Calculate the ratio of cash transactions to the total number of transactions for each customer.
    - Fill missing values with `0` to handle missing data in these calculations.
 
-### 9. **Handle Missing or Special Values**
+### 9. **Calculate the Ratios of Online**
+   - **Online Transaction Ratio**: Calculate the ratio of e-commerce, EFT, EMT, and Wire transactions to the total number of transactions         for each customer.
+   - No missing values because we handled it before.
+
+### 10. **Mode of Merchant Group*
+   - **Mode of Merchant Group**: Find the most common merchant group other than 'others' of a customer based on card transaction data.
+   - For customers without card transactions, the group will be "No certain group'.
+   - Fill the rest of the blank value with 'Other' because the only merchant group they have is 'Other'.
+
+### 10. **Handle Missing or Special Values**
    - Fill `n/a` values with `-1` because the first-day interval could be `-1`, and filling with the mean might result in `NaN`. Therefore, missing or special values will be replaced with `-1`.
 # Task1
 ## The Scoring System
