@@ -12,8 +12,40 @@ import numpy as np
 import json
 from collections import Counter
 import math
+import os
+from pathlib import Path
 
+input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
+interim_dir = os.path.join(output_dir, 'interim')
+resource_dir = os.getenv('RESOURCES_DIR', '/mnt/resources')
 
+def ensure_dir(path):
+    Path(interim_dir).mkdir(parents=True, exist_ok=True)
+
+# Read all the data
+abm_path = os.path.join(input_dir, "abm.csv")
+card_path = os.path.join(input_dir, 'card.csv')
+cheque_path = os.path.join(input_dir, 'cheque.csv')
+eft_path = os.path.join(input_dir, 'eft.csv')
+emt_path = os.path.join(input_dir, 'emt.csv')
+wire_path = os.path.join(input_dir, 'wire.csv')
+general_table_path = os.path.join(interim_dir, 'general_table.csv')
+kyc_path = os.path.join(input_dir, 'kyc.csv')
+
+df_general= pd.read_csv(general_table_path)
+df_abm = pd.read_csv(abm_path)
+df_wire = pd.read_csv(wire_path)
+df_emt = pd.read_csv(emt_path)
+df_eft = pd.read_csv(eft_path)
+df_cheque = pd.read_csv(cheque_path)
+df_card = pd.read_csv(card_path)
+df_kyc = pd.read_csv(kyc_path)
+
+resource_path = os.path.join(resource_dir, 'all_location_dict.json')
+
+with open(resource_path, 'r') as f:  
+    locations_dict = json.load(f)
 class Structure_clean:
     def __init__(self):
         pass
@@ -38,7 +70,8 @@ class Structure_clean:
 
         return df
 
-    def clean_df_with_address(self, df):  # df_abm, df_card
+
+    def clean_df_with_address(self, df): #df_abm, df_card
         # Convert `debit_credit` to 0 (debit) and 1 (credit)
         df['debit_credit'] = df['debit_credit'].apply(lambda x: 1 if x == 'credit' else 0)
 
@@ -61,7 +94,6 @@ class Structure_clean:
 
         return df
 
-
 def process_dataframes(df_card, df_abm, df_wire, df_eft, df_emt, df_cheque):
     s_clean = Structure_clean()
 
@@ -72,6 +104,7 @@ def process_dataframes(df_card, df_abm, df_wire, df_eft, df_emt, df_cheque):
     df_card_structure = s_clean.clean_df_with_address(df_card)
     df_abm_structure = s_clean.clean_df_with_address(df_abm)
 
+
     # Add a transaction_type column
     df_wire_structure['transaction_type'] = 'Wire'
     df_card_structure['transaction_type'] = 'Card'
@@ -81,31 +114,23 @@ def process_dataframes(df_card, df_abm, df_wire, df_eft, df_emt, df_cheque):
     df_cheque_structure['transaction_type'] = 'Cheque'
 
     # Select relevant columns
-    df_card_structure = df_card_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-    df_abm_structure = df_abm_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-    df_wire_structure = df_wire_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-    df_eft_structure = df_eft_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-    df_emt_structure = df_emt_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
-    df_cheque_structure = df_cheque_structure[
-        ['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_card_structure = df_card_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_abm_structure = df_abm_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date','transaction_type']]
+    df_wire_structure = df_wire_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_eft_structure = df_eft_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_emt_structure = df_emt_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
+    df_cheque_structure = df_cheque_structure[['customer_id', 'amount_cad', 'debit_credit', 'transaction_date', 'transaction_type']]
 
     # Combine all tables
-    df_combined = pd.concat([df_card_structure, df_abm_structure, df_wire_structure, df_eft_structure, df_emt_structure,
-                             df_cheque_structure], ignore_index=True)
+    df_combined = pd.concat([df_card_structure, df_abm_structure, df_wire_structure, df_eft_structure, df_emt_structure, df_cheque_structure], ignore_index=True)
 
     # Convert transaction_date to datetime for uniformity
     df_combined['transaction_date'] = pd.to_datetime(df_combined['transaction_date'])
 
     # Sort by customer_id and transaction_date, transaction time
-    df_combined = df_combined.sort_values(by=['customer_id', 'transaction_date'])
+    df_combined = df_combined.sort_values(by=['customer_id','transaction_date'])
 
     return df_combined
-
 
 def find_structuring(df, window_size):
     """
@@ -123,16 +148,14 @@ def find_structuring(df, window_size):
     """
     # Ensure 'transaction_date' is in datetime format
 
-    df.loc[df['transaction_type'] == 'Card', 'debit_credit'] = df.loc[
-        df['transaction_type'] == 'Card', 'amount_cad'].apply(lambda x: 0 if x < 0 else 1)
+    df.loc[df['transaction_type'] == 'Card', 'debit_credit'] = df.loc[df['transaction_type'] == 'Card', 'amount_cad'].apply(lambda x: 0 if x < 0 else 1)
 
     df['amount_cad'] = df['amount_cad'].apply(lambda x: -x if x < 0 else x)
 
     df['transaction_date'] = pd.to_datetime(df['transaction_date'])
 
     # Sort the dataframe by customer_id, transaction_type, debit_credit, and transaction_date
-    df_sorted = df.sort_values(['customer_id', 'transaction_type', 'debit_credit', 'transaction_date']).reset_index(
-        drop=True)
+    df_sorted = df.sort_values(['customer_id', 'transaction_type', 'debit_credit', 'transaction_date']).reset_index(drop=True)
 
     # Pivot the dataframe to have separate columns for each transaction_type and debit_credit combination
     # Calculate both sum and count
@@ -144,8 +167,8 @@ def find_structuring(df, window_size):
         fill_value=0
     ).reset_index()
 
-    # Flatten the MultiIndex columns New column names will be in the format 'sum_{transaction_type}_{debit_credit}'
-    # and 'count_{transaction_type}_{debit_credit}'
+    # Flatten the MultiIndex columns
+    # New column names will be in the format 'sum_{transaction_type}_{debit_credit}' and 'count_{transaction_type}_{debit_credit}'
     df_pivot.columns = ['customer_id', 'transaction_date'] + [
         f"{agg}_{trans_type}_{dc}" for agg, trans_type, dc in df_pivot.columns[2:]
     ]
@@ -174,7 +197,7 @@ def find_structuring(df, window_size):
                 group[rolling_sum_col] = group[sum_column].rolling(
                     window=f'{window_size}D',
                     closed='both',  # Include both start and end dates
-                    min_periods=1  # At least one observation in window
+                    min_periods=1    # At least one observation in window
                 ).sum()
             else:
                 # If the sum column does not exist, set rolling sum to 0
@@ -217,48 +240,43 @@ def find_structuring(df, window_size):
     df_merged['Total_Debit_Frequency'] = 0
     df_merged['Total_Credit_Frequency'] = 0
 
-    for transaction_type in transaction_types:
-        df_merged['Total_Debit_Amount'] += df_merged[f'rolling_sum_{transaction_type}_0']  # Sum up all debit
-        # transaction amount
-        df_merged['Total_Credit_Amount'] += df_merged[f'rolling_sum_{transaction_type}_1']  # Sum up all credit
-        # transaction amount
-        df_merged['Total_Debit_Frequency'] += df_merged[
-            f'rolling_count_{transaction_type}_0']  # Sum up all debit transaction frequency
-        df_merged['Total_Credit_Frequency'] += df_merged[
-            f'rolling_count_{transaction_type}_1']  # Sum up all credit transaction frequency
+    for type in transaction_types:
+        df_merged['Total_Debit_Amount'] += df_merged[f'rolling_sum_{type}_0'] # Sum up all debit transaction amount
+        df_merged['Total_Credit_Amount'] += df_merged[f'rolling_sum_{type}_1'] # Sum up all credit transaction amount
+        df_merged['Total_Debit_Frequency'] += df_merged[f'rolling_count_{type}_0'] # Sum up all debit transaction frequency
+        df_merged['Total_Credit_Frequency'] += df_merged[f'rolling_count_{type}_1'] # Sum up all credit transaction frequency
 
-    df_merged['Credit_average_spending_ratio'] = df_merged['Total_Credit_Amount'] / df_merged['Total_Credit_Frequency']
-    df_merged['Debit_average_spending_ratio'] = df_merged['Total_Debit_Amount'] / df_merged['Total_Debit_Frequency']
+    df_merged['Credit_average_spending_ratio'] = df_merged['Total_Credit_Amount']/df_merged['Total_Credit_Frequency']
+    df_merged['Debit_average_spending_ratio'] = df_merged['Total_Debit_Amount']/df_merged['Total_Debit_Frequency']
 
     print(f"Phase 1 of the period {window_size} is completed, collecting resposes....")
 
-    # df_merged.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Cleaned_Rolling_windows_csv/Window_{
-    # window_size}.csv")
+    # df_merged.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Cleaned_Rolling_windows_csv/Window_{window_size}.csv")
+
 
     def filter_credit_rows(df):
         filtered_df = df[(df['Total_Credit_Amount'] >= 10000) & (df['Credit_average_spending_ratio'] < 10000)]
         grouped_df = filtered_df.groupby('customer_id')
         # of flagged account
         flagged_count = len(grouped_df)
-        return filtered_df, flagged_count
+        return filtered_df,flagged_count
 
     def filter_debit_rows(df):
         filtered_df = df[(df['Total_Debit_Amount'] >= 10000) & (df['Debit_average_spending_ratio'] < 10000)]
         grouped_df = filtered_df.groupby('customer_id')
         # of flagged account
         flagged_count = len(grouped_df)
-        return filtered_df, flagged_count
+        return filtered_df,flagged_count
 
     filtered_credit_df, suspicious_credit_count = filter_credit_rows(df_merged)
     filtered_debit_df, suspicious_debit_count = filter_debit_rows(df_merged)
 
-    # filtered_credit_df.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Suspicious credit_debit df/{
-    # window_size}_credit_df.csv") filtered_debit_df.to_csv(f"/Users/shuaijia/Desktop/IMI
-    # Datathon/Structuring/Suspicious credit_debit df/{window_size}_debit_df.csv") filtered_both_df.to_csv(
-    # f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Suspicious credit_debit df/{window_size}_both_df.csv")
+    # filtered_credit_df.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Suspicious credit_debit df/{window_size}_credit_df.csv")
+    # filtered_debit_df.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Suspicious credit_debit df/{window_size}_debit_df.csv")
+    # filtered_both_df.to_csv(f"/Users/shuaijia/Desktop/IMI Datathon/Structuring/Suspicious credit_debit df/{window_size}_both_df.csv")
 
-    # If there is structuring behavior in either credit/debit activity, penalize 1 point, else if in both activities,
-    # penalize two points.
+
+    # If there is structuring behavior in either credit/debit activity, penalize 1 point, else if in both activities, penalize two points.
 
     df_credit = filtered_credit_df[['customer_id']].drop_duplicates()
     df_credit['is_structuring'] = 1
@@ -267,8 +285,7 @@ def find_structuring(df, window_size):
     df_debit['is_structuring'] = 1
 
     # Merge the aggregated results on customer_id
-    merged_structuring = pd.merge(df_credit, df_debit, on='customer_id', how='outer',
-                                  suffixes=('_credit', '_debit')).fillna(0)
+    merged_structuring = pd.merge(df_credit, df_debit, on='customer_id', how='outer', suffixes=('_credit', '_debit')).fillna(0)
 
     # Calculate structuring points
     merged_structuring['structuring_points'] = merged_structuring.apply(
@@ -283,8 +300,18 @@ def find_structuring(df, window_size):
 
     return final_df
 
+df_combined = process_dataframes(df_card, df_abm, df_wire, df_eft, df_emt, df_cheque)
 
-class clean_funnel:
+df_structure = find_structuring(df_combined, 2)
+
+print(df_structure.head(5))
+
+print(df_structure.tail(5))
+
+structure_counts = df_structure['structuring_points'].value_counts()
+print(f"Column: Structure_points\n{structure_counts}\n")
+
+class clean_funnel():
     def __init__(self):
         pass
 
@@ -310,38 +337,36 @@ class clean_funnel:
         return df
 
     def geoencode_df(self, df1, df2, locations_dict):
+
         # Stacking DF
         stacked_df = pd.concat([df1, df2])
 
         # Drop unshared columns
-        stacked_df = stacked_df.drop(
-            columns=['card_trxn_id', 'merchant_category', 'ecommerce_ind', 'abm_id', 'cash_indicator'])
+        stacked_df = stacked_df.drop(columns=['card_trxn_id','merchant_category','ecommerce_ind','abm_id','cash_indicator'])
 
         # Resort the values
-        stacked_df.sort_values(by=['customer_id', 'transaction_date'])
+        stacked_df.sort_values(by=['customer_id','transaction_date'])
 
         # Null-encoding
         stacked_df.replace({'country': ['unknown', 'other'],
-                            'province': ['unknown', 'other'],
-                            'city': ['unknown', 'other']}, np.nan, inplace=True)
+                    'province': ['unknown','other'],
+                    'city': ['unknown','other']}, np.nan, inplace=True)
 
         # Proper location format
         stacked_df['location'] = stacked_df['city'] + ', ' + stacked_df['province']
 
         # Geo-encode location
-        stacked_df['latitude'] = stacked_df['location'].map(
-            lambda x: locations_dict[x][0] if x in locations_dict else None)
-        stacked_df['longitude'] = stacked_df['location'].map(
-            lambda x: locations_dict[x][1] if x in locations_dict else None)
+        stacked_df['latitude'] = stacked_df['location'].map(lambda x: locations_dict[x][0] if x in locations_dict else None)
+        stacked_df['longitude'] = stacked_df['location'].map(lambda x: locations_dict[x][1] if x in locations_dict else None)
 
         # Sort the dataframe
-        stacked_df.sort_values(by=['customer_id', 'transaction_date'])
+        stacked_df.sort_values(by=['customer_id','transaction_date'])
 
         return stacked_df
 
     def count_row_with_na(self, df):
         # Identify rows with at least 1 Nan, provides boolean series
-        rows_with_na = df.isna().any(axis=1)  # 在每个行进行操作axis=1
+        rows_with_na = df.isna().any(axis=1) # 在每个行进行操作axis=1
 
         # Group by customer_id, filter out the Nan columns and convert to another dataframe
         na_row_counts = df[rows_with_na].groupby('customer_id').size()
@@ -352,24 +377,23 @@ class clean_funnel:
         return result_dict
 
     def check_funnel_transaction(self, stacked_df, locations_dict):
+
         # Shift the previous tansaction
         stacked_df['prev_cust_id'] = stacked_df['customer_id'].shift(1)
         stacked_df['prev_location'] = stacked_df['location'].shift(1)
         stacked_df['prev_transaction_date'] = stacked_df['transaction_date'].shift(1)
 
         # Geo-encode previous location
-        stacked_df['prev_latitude'] = stacked_df['prev_location'].map(
-            lambda x: locations_dict[x][0] if x in locations_dict else None)
-        stacked_df['prev_longitude'] = stacked_df['prev_location'].map(
-            lambda x: locations_dict[x][1] if x in locations_dict else None)
+        stacked_df['prev_latitude'] = stacked_df['prev_location'].map(lambda x: locations_dict[x][0] if x in locations_dict else None)
+        stacked_df['prev_longitude'] = stacked_df['prev_location'].map(lambda x: locations_dict[x][1] if x in locations_dict else None)
 
         # Filter out the df that is funnel transaction
-        filtered_df = stacked_df.loc[(stacked_df['customer_id'] == stacked_df['prev_cust_id']) & (
-                stacked_df['prev_location'] != stacked_df['location'])]
+        filtered_df = stacked_df.loc[(stacked_df['customer_id'] == stacked_df['prev_cust_id']) & (stacked_df['prev_location'] != stacked_df['location'])]
 
         return filtered_df
 
     def check_funnel_count(self, filtered_df, nan_count_dict):
+
         funnel_transaction_per_customer_df = filtered_df.groupby('customer_id').size()
 
         funnel_dict = funnel_transaction_per_customer_df.to_dict()
@@ -381,8 +405,7 @@ class clean_funnel:
         total_counts = sum(funnel_dict_updated.values())
 
         # Normalize the counts of each unique customer id from [0,1]
-        normalized_funnel_count_dict = {cust_id: round(counts / total_counts, 7) for cust_id, counts in
-                                        funnel_dict_updated.items()}
+        normalized_funnel_count_dict = {cust_id: round(counts / total_counts, 7) for cust_id, counts in funnel_dict_updated.items()}
 
         return normalized_funnel_count_dict
 
@@ -400,7 +423,7 @@ class clean_funnel:
             delta_lon = lon2_rad - lon1_rad
 
             # Haversine formula
-            a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+            a = math.sin(delta_lat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2)**2
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
             distance = R * c
 
@@ -417,13 +440,10 @@ class clean_funnel:
 
         # Calculate the distances between current and previous locations
 
-        filtered_df['distance'] = filtered_df.apply(
-            lambda row: haversine(row['latitude'], row['longitude'], row['prev_latitude'], row['prev_longitude']),
-            axis=1)
+        filtered_df['distance'] = filtered_df.apply(lambda row: haversine(row['latitude'], row['longitude'], row['prev_latitude'], row['prev_longitude']), axis = 1)
 
         # The average distances by customer
-        funnel_distance_per_customer_df = (
-            filtered_df.groupby('customer_id')['distance'].mean().reset_index(name='average_distance'))
+        funnel_distance_per_customer_df = (filtered_df.groupby('customer_id')['distance'].mean().reset_index(name='average_distance'))
 
         # Transform the dataframe to the dictionary
         funnel_distance_dict = funnel_distance_per_customer_df.set_index('customer_id')['average_distance'].to_dict()
@@ -432,17 +452,17 @@ class clean_funnel:
         normalized_funnel_distance_dict = dict_normalization(funnel_distance_dict, 7)
 
         # Calculate the time difference between current and previous transactions
-
-        filtered_df['time_difference'] = filtered_df.apply(
-            lambda row: (row['transaction_date'] - row['prev_transaction_date']).days, axis=1)
+        try:
+            filtered_df['time_difference'] = filtered_df.apply(lambda row: (row['transaction_date'] - row['prev_transaction_date']).days, axis=1)
+        except Exception as e:
+            normalized_funnel_time_difference_dict = {}
+            return normalized_funnel_distance_dict, normalized_funnel_time_difference_dict
 
         # The average time difference by customer
-        funnel_time_difference_per_customer_df = (
-            filtered_df.groupby('customer_id')['time_difference'].mean().reset_index(name='average_time'))
+        funnel_time_difference_per_customer_df = (filtered_df.groupby('customer_id')['time_difference'].mean().reset_index(name='average_time'))
 
         # Transform the dataframe to the dictionary
-        funnel_time_difference_dict = funnel_time_difference_per_customer_df.set_index('customer_id')[
-            'average_time'].to_dict()
+        funnel_time_difference_dict = funnel_time_difference_per_customer_df.set_index('customer_id')['average_time'].to_dict()
 
         # Normalize the time_difference dictionary
         normalized_funnel_time_difference_dict = dict_normalization(funnel_time_difference_dict, 7)
@@ -450,84 +470,8 @@ class clean_funnel:
         return normalized_funnel_distance_dict, normalized_funnel_time_difference_dict
 
 
-def calculate_funnel_points(df_abm, df_card, locations_dict):
-    Funnel = clean_funnel()
+def calculate_funnel_points(df_abm, df_card,locations_dict):
 
-    # Formatting dfs
-    df_abm_cleaned = Funnel.clean_df(df_abm)
-    df_card_cleaned = Funnel.clean_df(df_card)
-
-    df_abm_cleaned['transaction_type'] = "abm"
-    df_card_cleaned['transaction_type'] = "card"
-
-    # Geoencoding dfs
-
-    # Read all_location_dict.json as locations_dict
-
-    # Transform all keys in the dictionary into upper case
-    locations_dict = {k.upper(): v for k, v in locations_dict.items()}
-
-    # Geoencoding dfs
-    stacked_df = Funnel.geoencode_df(df_abm_cleaned, df_card_cleaned, locations_dict)
-
-    # Count the number of null values in df
-    nan_count_dict = Funnel.count_row_with_na(stacked_df)
-
-    # drop the rows that contains nan value
-    stacked_df.dropna(subset=['country', 'province', 'city', 'latitude', 'longitude'], inplace=True)
-
-    # Apply furthur transformation
-    filtered_df = Funnel.check_funnel_transaction(stacked_df, locations_dict)
-
-    # Calculate the Funnel Transaction frequnecy count score (in dictionary format)
-    normalized_funnel_count_dict = Funnel.check_funnel_count(filtered_df, nan_count_dict)
-
-    # Calculate the Funnel distance and time score (in dictionary format)
-    normalized_funnel_distance_dict, normalized_funnel_time_difference_dict = Funnel.calculate_time_distance_dict(
-        filtered_df)
-
-    import heapq
-
-    # Get the second lowest value
-    second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
-    lowest_time_diff = second_lowest / 10
-
-    normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in
-                                              normalized_funnel_time_difference_dict.items()}
-
-    counter_distance = Counter(normalized_funnel_distance_dict)
-    counter_time_difference = Counter(normalized_funnel_time_difference_dict)
-    counter_count = Counter(normalized_funnel_count_dict)
-
-    # Funnel Index Calculate, longer distance, smaller time difference and larger funnel count means higher funnel index
-    result_dict = {key: counter_distance[key] * counter_count[key] / counter_time_difference[key] for key in
-                   counter_time_difference if key in counter_time_difference and counter_time_difference[key] != 0}
-
-    # Reformatting result_dict to result_df
-    result_df = pd.DataFrame.from_dict(result_dict, orient='index', columns=['funnel_index']).reset_index()
-
-    result_df.rename(columns={'index': 'customer_id'}, inplace=True)
-
-    # Ensure values are sorted for plotting
-    result_df = result_df.sort_values(by='funnel_index', ascending=True)
-
-    # Get the 10th percentile cutoff value
-    values = result_df['funnel_index']
-    first_percentile_value = values.quantile(0.99)
-    fifth_percentile_value = values.quantile(0.95)
-    tenth_percentile_value = values.quantile(0.9)
-
-    result_df['funnel_points'] = result_df['funnel_index'].apply(
-        lambda x: 3 if x >= first_percentile_value
-        else 2 if fifth_percentile_value <= x < first_percentile_value
-        else 1 if tenth_percentile_value <= x < fifth_percentile_value
-        else 0
-    )
-
-    return result_df
-
-
-def calculate_funnel_points_old(df_abm, df_card, locations_dict):
     Funnel = clean_funnel()
 
     # Formatting dfs
@@ -550,7 +494,7 @@ def calculate_funnel_points_old(df_abm, df_card, locations_dict):
     nan_count_dict = Funnel.count_row_with_na(stacked_df)
 
     # drop the rows that contains nan value
-    stacked_df.dropna(subset=['country', 'province', 'city', 'latitude', 'longitude'], inplace=True)
+    stacked_df.dropna(subset=['country','province','city', 'latitude', 'longitude'], inplace=True)
 
     # Apply furthur transformation
     filtered_df = Funnel.check_funnel_transaction(stacked_df, locations_dict)
@@ -559,35 +503,34 @@ def calculate_funnel_points_old(df_abm, df_card, locations_dict):
     normalized_funnel_count_dict = Funnel.check_funnel_count(filtered_df, nan_count_dict)
 
     # Calculate the Funnel distance and time score (in dictionary format)
-    normalized_funnel_distance_dict, normalized_funnel_time_difference_dict = Funnel.calculate_time_distance_dict(
-        filtered_df)
+    normalized_funnel_distance_dict, normalized_funnel_time_difference_dict = Funnel.calculate_time_distance_dict(filtered_df)
 
     import heapq
 
     # Get the second lowest value
-    second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
-    lowest_time_diff = second_lowest / 10
+    try:
+        second_lowest = heapq.nsmallest(2, set(normalized_funnel_time_difference_dict.values()))[-1]
+    except Exception as e:
+        result_df = pd.DataFrame(columns=['customer_id', 'funnel_index', 'funnel_points'])
+        sub_index_df = pd.DataFrame(columns=['customer_id', 'time_index', 'distance_index', 'count_index'])
+        return result_df, sub_index_df
+    lowest_time_diff = second_lowest/10
 
-    normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in
-                                              normalized_funnel_time_difference_dict.items()}
+    normalized_funnel_time_difference_dict = {key: lowest_time_diff if value == 0 else value for key, value in normalized_funnel_time_difference_dict.items()}
 
     counter_distance = Counter(normalized_funnel_distance_dict)
     counter_time_difference = Counter(normalized_funnel_time_difference_dict)
     counter_count = Counter(normalized_funnel_count_dict)
 
     # Funnel Index Calculate, longer distance, smaller time difference and larger funnel count means higher funnel index
-    result_dict = {key: counter_distance[key] * counter_count[key] / counter_time_difference[key] for key in
-                   counter_time_difference if key in counter_time_difference and counter_time_difference[key] != 0}
+    result_dict = {key: counter_distance[key] * counter_count[key] / counter_time_difference[key] for key in counter_time_difference if key in counter_time_difference and counter_time_difference[key] != 0}
 
     # Reformatting result_dict to result_df
     result_df = pd.DataFrame.from_dict(result_dict, orient='index', columns=['funnel_index']).reset_index()
 
-    time_diff_df = pd.DataFrame.from_dict(normalized_funnel_time_difference_dict, orient='index',
-                                          columns=['time_index']).reset_index()
-    distance_df = pd.DataFrame.from_dict(normalized_funnel_distance_dict, orient='index',
-                                         columns=['distance_index']).reset_index()
-    count_df = pd.DataFrame.from_dict(normalized_funnel_count_dict, orient='index',
-                                      columns=['count_index']).reset_index()
+    time_diff_df = pd.DataFrame.from_dict(normalized_funnel_time_difference_dict, orient='index', columns=['time_index']).reset_index()
+    distance_df = pd.DataFrame.from_dict(normalized_funnel_distance_dict, orient='index', columns=['distance_index']).reset_index()
+    count_df = pd.DataFrame.from_dict(normalized_funnel_count_dict, orient='index', columns=['count_index']).reset_index()
 
     # Rename the column
     result_df.rename(columns={'index': 'customer_id'}, inplace=True)
@@ -607,45 +550,44 @@ def calculate_funnel_points_old(df_abm, df_card, locations_dict):
 
     result_df['funnel_points'] = result_df['funnel_index'].apply(
         lambda x: 3 if x >= perc_99_value
-        else 2 if perc_95_value <= x < perc_99_value
-        else 1 if perc_90_value <= x < perc_95_value
+        else 2 if x >= perc_95_value and x < perc_99_value
+        else 1 if x >= perc_90_value and x < perc_95_value
         else 0
     )
 
     return result_df, sub_index_df
 
-
 def apply_points_to_index(df):
-    def apply_points_positive(df_positive, index):
+    def apply_points_positive(df, index):
         # Get the 10th percentile cutoff value
-        values = df_positive[index]
+        values = df[index]
         perc_99_value = values.quantile(0.99)
         perc_95_value = values.quantile(0.95)
         perc_90_value = values.quantile(0.9)
 
-        result_df = df_positive.copy()
+        result_df = df.copy()
 
         result_df[f"{index}_point"] = result_df[index].apply(
             lambda x: 3 if x >= perc_99_value
-            else 2 if perc_95_value <= x < perc_99_value
-            else 1 if perc_90_value <= x < perc_95_value
+            else 2 if x >= perc_95_value and x < perc_99_value
+            else 1 if x >= perc_90_value and x < perc_95_value
             else 0
-        )
+    )
         return result_df
 
-    def apply_points_negative(df_negative, index):
+    def apply_points_negative(df, index):
         # Get the 10th percentile cutoff value
-        values = df_negative[index]
+        values = df[index]
         first_percentile_value = values.quantile(0.01)
         fifth_percentile_value = values.quantile(0.05)
         tenth_percentile_value = values.quantile(0.1)
 
-        result_df = df_negative.copy()
+        result_df = df.copy()
 
         result_df[f"{index}_point"] = result_df[index].apply(
             lambda x: 3 if x <= first_percentile_value
-            else 2 if fifth_percentile_value >= x > first_percentile_value
-            else 1 if tenth_percentile_value >= x > fifth_percentile_value
+            else 2 if x <= fifth_percentile_value and x > first_percentile_value
+            else 1 if x <= tenth_percentile_value and x > fifth_percentile_value
             else 0)
 
         return result_df
@@ -656,12 +598,40 @@ def apply_points_to_index(df):
 
     return df_new
 
+df_funnel, df_sub_scores = calculate_funnel_points(df_abm, df_card, locations_dict)
+
+df_sub_scores = apply_points_to_index(df_sub_scores)
+
+for col in df_sub_scores.columns:
+  counts = df_sub_scores[col].value_counts()
+  print(f"Column: {col}\n{counts}\n")
+
+print(df_funnel.head(5))
+
+# prompt: I want to map the structuring_points with the same customer_id in the df_structure to df_general.csv
+
+# Merge the dataframes based on 'customer_id'
+df_merged = pd.merge(df_general, df_structure, on='customer_id', how='left')
+
+# Merge the dataframes based on 'customer_id'
+df_merged = pd.merge(df_merged, df_funnel, on='customer_id', how='left')
+
+# Merge the dataframes based on 'customer_id'
+df_merged = pd.merge(df_merged, df_structure, on='customer_id', how='left')
+
+# Merge the dataframes based on 'customer_id'
+df_merged = pd.merge(df_merged, df_sub_scores, on='customer_id', how='left')
+
+# Replace NaN values with 0
+df_merged.fillna(0, inplace=True)
+
+len(df_general) == df_merged.shape[0]
 
 # Calculate the number of missing information in the kyc data set. Any missing data will add 1 point for
 def assign_kyc_missing_score(
-        df_kyc: pd.DataFrame,
-        customer_col: str = "customer_id",
-        score_col: str = "score_missing_kyc"
+    df_kyc: pd.DataFrame,
+    customer_col: str = "customer_id",
+    score_col: str = "score_missing_kyc"
 ) -> pd.DataFrame:
     """
     For each row (customer) in df_kyc, count how many columns are missing
@@ -682,96 +652,33 @@ def assign_kyc_missing_score(
     return result_df
 
 
-def get_score(input_dir, interim_dir, resource_dir):
-    # Read all the data
-    print("start score")
-    wire_path = input_dir + 'wire.csv'
-    emt_path = input_dir + 'emt.csv'
-    eft_path = input_dir + 'eft.csv'
-    cheque_path = input_dir + 'cheque.csv'
-    card_path = input_dir + 'card.csv'
-    abm_path = input_dir + 'abm.csv'
-    general_table_path = interim_dir + 'general_table.csv'
-    kyc_path = input_dir + 'kyc.csv'
+# Compute the missing score from kyc data
+df_kyc_score = assign_kyc_missing_score(
+    df_kyc=df_kyc,
+    customer_col="customer_id",
+    score_col="score_missing_kyc"
+)
 
-    df = pd.read_csv(general_table_path)
-    df_abm = pd.read_csv(abm_path)
-    df_wire = pd.read_csv(wire_path)
-    df_emt = pd.read_csv(emt_path)
-    df_eft = pd.read_csv(eft_path)
-    df_cheque = pd.read_csv(cheque_path)
-    df_card = pd.read_csv(card_path)
-    df_kyc = pd.read_csv(kyc_path)
+# Merge that score into cl_file
+df_merged = df_merged.merge(df_kyc_score, on="customer_id", how="left")
 
-    resource_path = resource_dir + 'all_location_dict.json'
+# 0 for no missing value
+df_merged["score_missing_kyc"] = df_merged["score_missing_kyc"].fillna(0)
 
-    with open(resource_path, 'r') as f:
-        locations_dict = json.load(f)
+print(df_merged.shape[0])
 
-    df_combined = process_dataframes(df_card, df_abm, df_wire, df_eft, df_emt, df_cheque)
+df_merged = df_merged.drop("structuring_points_y", axis=1)
 
-    df_structure = find_structuring(df_combined, 2)
+df_merged.columns
 
-    print(df_structure.head(5))
+df_merged.head(5)
 
-    print(df_structure.tail(5))
+# prompt: write df_merged as new_general_table.csv into my current google drive folder
+new_general_table_path = os.path.join(interim_dir, "new_general_table.csv")
+ensure_dir(new_general_table_path)
+df_merged.to_csv(new_general_table_path, index=False)
 
-    structure_counts = df_structure['structuring_points'].value_counts()
-    print(f"Column: Structure_points\n{structure_counts}\n")
+# 第一笔交易和Onboarding time/location比较
+# 下载北美所有城市的coordinates
+# 整合成一个function
 
-    df_funnel, df_sub_scores = calculate_funnel_points_old(df_abm, df_card, locations_dict)
-    print(df_funnel.head(5))
-    print(len(df_funnel))
-
-    df_sub_scores = apply_points_to_index(df_sub_scores)
-
-    df_sub_scores.head(5)
-
-    df_sub_scores.describe()
-
-    for col in df_sub_scores.columns:
-        counts = df_sub_scores[col].value_counts()
-        print(f"Column: {col}\n{counts}\n")
-
-    print(df_funnel.head(5))
-
-    # prompt: I want to map the structuring_points with the same customer_id in the df_structure to df_general.csv
-
-    # Merge the dataframes based on 'customer_id'
-    df_merged = pd.merge(df, df_structure, on='customer_id', how='left')
-
-    # Merge the dataframes based on 'customer_id'
-    df_merged = pd.merge(df_merged, df_funnel, on='customer_id', how='left')
-
-    # Merge the dataframes based on 'customer_id'
-    df_merged = pd.merge(df_merged, df_structure, on='customer_id', how='left')
-
-    # Merge the dataframes based on 'customer_id'
-    df_merged = pd.merge(df_merged, df_sub_scores, on='customer_id', how='left')
-
-    # Replace NaN values with 0
-    df_merged.fillna(0, inplace=True)
-
-    # Compute the missing score from kyc data
-    df_kyc_score = assign_kyc_missing_score(
-        df_kyc=df_kyc,
-        customer_col="customer_id",
-        score_col="score_missing_kyc"
-    )
-
-    # Merge that score into cl_file
-    df_merged = df_merged.merge(df_kyc_score, on="customer_id", how="left")
-
-    # 0 for no missing value
-    df_merged["score_missing_kyc"] = df_merged["score_missing_kyc"].fillna(0)
-
-    #df_merged = df_merged.drop("structuring_points_y", axis=1)
-
-    # prompt: write df_merged as new_general_table.csv into my current google drive folder
-    new_general_table_path = interim_dir + "new_general_table.csv"
-    df_merged.to_csv(new_general_table_path, index=False)
-    print("score done")
-
-    # 第一笔交易和Onboarding time/location比较
-    # 下载北美所有城市的coordinates
-    # 整合成一个function

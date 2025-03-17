@@ -11,24 +11,24 @@ from scarf.loss import NTXent
 from scarf.model import SCARF
 from scarf.dataset import SCARFDataset
 
+
 import random
 
 import numpy as np
+import torch
 from tqdm.auto import tqdm
+import pandas as pd
 import os
 from pathlib import Path
+# mark the input and output directory
+input_dir = os.getenv('INPUT_DIR', '/mnt/data') 
+output_dir = os.getenv('OUTPUT_DIR', '/mnt/output') 
+interim_dir = os.path.join(output_dir, 'interim')
+def ensure_dir(path):
+    Path(interim_dir).mkdir(parents=True, exist_ok=True)
 
-import torch
-import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from torch.optim import Adam
-from torch.utils.data import DataLoader
-
-
-
-
-
+new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
+df = pd.read_csv(new_general_table_path)
 
 def get_device():
     if torch.cuda.is_available():
@@ -65,7 +65,6 @@ def train_epoch(model, criterion, train_loader, optimizer, device):
         epoch_loss += loss.item()
 
     return epoch_loss / len(train_loader.dataset)
-
 
 def dataset_embeddings(model, loader, device):
     embeddings = []
@@ -203,111 +202,7 @@ ensure_dir(embedding_path)
 df_embeddings.to_csv(embedding_path, index=False)
 
 
-def get_embedding(output_dir, interim_dir):
-    new_general_table_path = os.path.join(interim_dir, 'new_general_table.csv')
-    df = pd.read_csv(new_general_table_path)
-    df.head()
+task2_output_path = os.path.join(output_dir, 'customer_embeddings.txt')
+df_embeddings.to_csv(task2_output_path, index=False, sep='\t')
 
-    data = df
-    # ***Change features***
-    # NOT include any highly correlated features
-    data = data[['total_debit_amount_cad', 'transaction_frequency',
-                 'avg_transaction_interval_day', 'mode_transaction_interval_day',
-                 'avg_credit_transaction_amount',
-                 'avg_debit_transaction_amount', 'structuring_points_x',
-                 'funnel_points', 'structuring_points_x', 'score_missing_kyc', 'ecommerce_ratio', 'cash_ratio']]
-
-    # preprocess
-    scaler = StandardScaler()
-    data_scaled = pd.DataFrame(scaler.fit_transform(data), columns=data.columns)
-
-    # Since this package requires a target, we will create a dummy target
-    dummy_target = np.zeros(len(data_scaled))
-    features_low = data_scaled.min(axis=0).values
-    features_high = data_scaled.max(axis=0).values
-    # to torch dataset
-    train_ds = SCARFDataset(data_scaled.to_numpy(),
-                            target=dummy_target)
-    train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
-
-    # ***Hyperparams***
-    batch_size = 256  # larger takes more time
-    epochs = 1000  # as large as possible
-    output_dimension = 6  # output embedding dimension
-    # ***Hyperparams***
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-
-    model = SCARF(
-        input_dim=train_ds.shape[1],
-        features_low=train_ds.features_low,
-        features_high=train_ds.features_high,
-        dim_hidden_encoder=output_dimension,
-        # Change layout below
-        num_hidden_encoder=3,
-        dim_hidden_head=64,
-        num_hidden_head=2,
-        corruption_rate=0.5,
-        dropout=0.1,
-    ).to(device)
-
-    optimizer = Adam(model.parameters(), lr=1e-4)  # learning rate, wirely, smaller lr is more fluctuated
-    ntxent_loss = NTXent()  # loss function
-
-    loss_history = []
-    best_loss = float('inf')
-    patience = 20
-    no_improve = 0
-
-    for epoch in range(1, epochs + 1):
-        epoch_loss = train_epoch(model, ntxent_loss, train_loader, optimizer, device)
-        loss_history.append(epoch_loss)
-
-        if epoch_loss < best_loss:
-            best_loss = epoch_loss
-            no_improve = 0
-        else:
-            no_improve += 1
-
-        if no_improve >= patience:
-            print(f"\nEarly stopping at epoch {epoch}")
-            break
-
-        if epoch % 10 == 0:
-            print(f"Epoch {epoch}/{epochs} - Loss: {loss_history[-1]:.4f}")
-
-    # Visulize the training loss
-    plt.figure(figsize=(10, 5))
-    plt.plot(loss_history)
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.title("Training Loss Curve")
-    plt.show()
-
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
-    train_embeddings = dataset_embeddings(model, train_loader, device)
-    print(train_embeddings.shape)
-
-    customer_ids = df['customer_id'].values  # 或 df.index 如果 customer_id 是索引
-
-    embedding_columns = [f'embedding_{i}' for i in range(train_embeddings.shape[1])]
-
-    df_embeddings = pd.DataFrame(
-        data=np.column_stack([customer_ids, train_embeddings]),
-        columns=['customer_id'] + embedding_columns
-    )
-
-    df_embeddings['customer_id'] = df_embeddings['customer_id'].astype(df['customer_id'].dtype)
-
-    print(df_embeddings.head())
-
-    task2_output_path = os.path.join(output_dir, 'task2.csv')
-    task2_output_path = os.path.join(output_dir, 'task2/customer_embeddings.txt')
-
-    df.to_csv(task2_output_path, index=False, sep='\t')
-
-    df_embeddings.info
-
+df_embeddings.info
